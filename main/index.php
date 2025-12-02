@@ -18,6 +18,9 @@ $config->configureAllowedHosts(["127.0.0.1", "localhost"]);
 // Cookie Session Configuration. Domain can be set to .domain.com to accept all subdomains inside your domain.
 $config->configureAuthorization("YOURSESSIONNAME", 7, "localhost");
 
+// Where to redirect if route not found.
+$config->configureNotFoundRedirects("/");
+
 // Where to redirect if not authorized. Leave subdomain empty to use the main domain. DO NOT USE a restricted site.
 $config->configureUnauthorizedRedirects("/", "");
 
@@ -27,8 +30,9 @@ $template = Template::new("Smart Site", "0.0.1", "en");
 // View Router configuration. You can append a template to each view.
 $viewRouter = Router::endpoints([
     Endpoint::view(false, "/", "main.html"),
-    Endpoint::view(false, "/ping", "ping.html", Template::oneline("Ping test", "0.0.1", "en", [], [], 
-        ["#api-result-span" => "/api/ping"]
+    Endpoint::view(false, "/ping", "ping.html", Template::flex(title: "Ping test", autofill: [ 
+            "#api-result-span" => "/api/ping"
+        ]
     ))
 ]);
 

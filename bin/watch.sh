@@ -1,5 +1,16 @@
 #!/bin/bash
 
+#==============================================================================
+# SmartGoblin Framework - Watch Script
+#==============================================================================
+# This script automates the compile process of .js and .scss files inside
+# the src/resources directory of each project.
+#
+# Usage: ./watch.sh
+#==============================================================================
+
+set -e  # Exit on error
+
 projects=("main")
 
 cd "$(dirname "${BASH_SOURCE[0]}")"/..

@@ -1,10 +1,10 @@
 {
-    "name": "smart-goblin/project",
-    "description": "Skeleton for SmartGoblin projects.",
+    "name": "fast-raven/project",
+    "description": "Skeleton for FastRaven projects.",
     "type": "project",
     "license": "MIT",
     "require": {
         "php": "^8.5",
-        "smart-goblin/library": "^0.1"
+        "fast-raven/library": "^0.1"
     }
 }

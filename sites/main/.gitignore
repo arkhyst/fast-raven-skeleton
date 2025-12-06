@@ -1,0 +1,5 @@
+/_cert
+/logs
+.env
+.env.dev
+.env.prod

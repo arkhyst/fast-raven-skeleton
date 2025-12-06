@@ -1,11 +1,11 @@
 {
-  "name": "goblin-minion",
+  "name": "raven-project",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "g0bl1n",
+  "author": "raven",
   "license": "MIT",
   "devDependencies": {
     "chokidar": "^4.0.3",

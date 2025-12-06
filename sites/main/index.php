@@ -3,7 +3,7 @@
 declare(strict_types=1);
 require __DIR__ . "/../vendor/autoload.php";
 
-use SmartGoblin\Server;
+use FastRaven\Server;
 
 // sitePath SHOULD ALWAYS BE __DIR__ unless you know what you are doing. Leave empty for the same value as preload.
 

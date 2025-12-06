@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #==============================================================================
-# SmartGoblin Framework - Watch Script
+# FastRaven Framework - Watch Script
 #==============================================================================
 # This script automates the compile process of .js and .scss files inside
 # the src/resources directory of each project.

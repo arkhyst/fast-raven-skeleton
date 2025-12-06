@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #==============================================================================
-# SmartGoblin Framework - Build Script
+# FastRaven Framework - Build Script
 #==============================================================================
-# This script automates the build process of a SmartGoblin site.
+# This script automates the build process of a FastRaven site.
 # It can also scaffold new sites with the proper directory structure.
 #
 # Usage: 
@@ -61,7 +61,7 @@ if [ -n "$1" ]; then
     
     echo ""
     echo -e "${GREEN}========================================${NC}"
-    echo -e "${GREEN}     SmartGoblin Site Scaffolding${NC}"
+    echo -e "${GREEN}     FastRaven Site Scaffolding${NC}"
     echo -e "${GREEN}========================================${NC}"
     echo ""
     
@@ -140,7 +140,7 @@ EOF
 declare(strict_types=1);
 require __DIR__ . "/../vendor/autoload.php";
 
-use SmartGoblin\Server;
+use FastRaven\Server;
 
 // sitePath SHOULD ALWAYS BE __DIR__ unless you know what you are doing. Leave empty for the same value as preload.
 
@@ -173,8 +173,8 @@ EOF
     # config.php
     cat > "$SITE_PATH/config/config.php" <<'EOF'
 <?php
-use SmartGoblin\Components\Core\Config;
-use SmartGoblin\Workers\Bee;
+use FastRaven\Components\Core\Config;
+use FastRaven\Workers\Bee;
 
 // Main Configuration
 $config = Config::new("${SITE_NAME}", false);
@@ -196,9 +196,9 @@ EOF
     # template.php
     cat > "$SITE_PATH/config/template.php" <<'EOF'
 <?php
-use SmartGoblin\Components\Core\Template;
+use FastRaven\Components\Core\Template;
 
-$template = Template::new("SmartGoblin Site", "1.0.0", "en");
+$template = Template::new("FastRaven Site", "1.0.0", "en");
 
 // Add your styles and scripts here
 // $template->addStyle("resources/main.css");
@@ -210,8 +210,8 @@ EOF
     # router/views.php
     cat > "$SITE_PATH/config/router/views.php" <<'EOF'
 <?php
-use SmartGoblin\Components\Routing\Router;
-use SmartGoblin\Components\Routing\Endpoint;
+use FastRaven\Components\Routing\Router;
+use FastRaven\Components\Routing\Endpoint;
 
 return Router::endpoints([
     Endpoint::view(false, "/", "main.html"),
@@ -221,8 +221,8 @@ EOF
     # router/api.php
     cat > "$SITE_PATH/config/router/api.php" <<'EOF'
 <?php
-use SmartGoblin\Components\Routing\Router;
-use SmartGoblin\Components\Routing\Endpoint;
+use FastRaven\Components\Routing\Router;
+use FastRaven\Components\Routing\Endpoint;
 
 return Router::endpoints([
     Endpoint::api(false, "GET", "/health", "Health.php"),
@@ -280,7 +280,7 @@ EOF
     #==========================================================================
     
     cat > "$SITE_PATH/src/views/main.html" <<'EOF'
-    <h1>Welcome to SmartGoblin!</h1>
+    <h1>Welcome to FastRaven!</h1>
     <p>Your new site is ready to go.</p>
     <p>Edit this file at <code>src/views/main.html</code></p>
 EOF
@@ -291,7 +291,7 @@ EOF
     
     cat > "$SITE_PATH/src/api/Health.php" <<'EOF'
 <?php
-use SmartGoblin\Components\Http\Response;
+use FastRaven\Components\Http\Response;
 
 return function($request) {
     return Response::new(true, 200, "Hello there!", [
@@ -344,7 +344,7 @@ fi
 
 echo ""
 echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}SmartGoblin Build${NC}"
+echo -e "${GREEN}FastRaven Build${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
 

@@ -1,7 +1,7 @@
 <?php
 
-use SmartGoblin\Components\Routing\Endpoint;
-use SmartGoblin\Components\Routing\Router;
+use FastRaven\Components\Routing\Endpoint;
+use FastRaven\Components\Routing\Router;
 
 // API Router configuration. /api/ prefix is automatically added.
 $apiRouter = Router::endpoints([

@@ -1,8 +1,8 @@
 <?php
 
-use SmartGoblin\Components\Core\Template;
-use SmartGoblin\Components\Routing\Endpoint;
-use SmartGoblin\Components\Routing\Router;
+use FastRaven\Components\Core\Template;
+use FastRaven\Components\Routing\Endpoint;
+use FastRaven\Components\Routing\Router;
 
 // View Router configuration. You can append a template to each view.
 $viewRouter = Router::endpoints([

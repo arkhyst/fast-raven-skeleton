@@ -1,8 +1,8 @@
 <?php
 
-use SmartGoblin\Components\Core\Config;
+use FastRaven\Components\Core\Config;
 
-use SmartGoblin\Workers\Bee;
+use FastRaven\Workers\Bee;
 
 // Main Configuration. siteName is not the subdomain.
 $config = Config::new("main", false);

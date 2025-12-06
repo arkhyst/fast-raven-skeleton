@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #==============================================================================
-# SmartGoblin Framework - Apache2 Deployment Script
+# FastRaven Framework - Apache2 Deployment Script
 #==============================================================================
-# This script automates the deployment of a SmartGoblin site to Apache2 with
+# This script automates the deployment of a FastRaven site to Apache2 with
 # SSL certificate generation using mkcert.
 #
 # Usage: ./deploy.sh <domain> <site-folder>

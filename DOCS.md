@@ -1,8 +1,8 @@
-# SmartGoblin Framework Documentation
+# FastRaven Framework Documentation
 
 ## Overview
 
-**SmartGoblin** is a lightweight, fast, and minimalistic PHP framework designed for building monolithic applications. It provides a clean separation between API endpoints and view rendering, with built-in authentication, database operations, logging, and security features.
+**FastRaven** is a lightweight, fast, and minimalistic PHP framework designed for building monolithic applications. It provides a clean separation between API endpoints and view rendering, with built-in authentication, database operations, logging, and security features.
 
 ### Key Features
 
@@ -339,9 +339,9 @@ Create `src/api/user/profile.php`:
 
 ```php
 <?php
-use SmartGoblin\Components\Http\Response;
-use SmartGoblin\Workers\DataWorker;
-use SmartGoblin\Workers\AuthWorker;
+use FastRaven\Components\Http\Response;
+use FastRaven\Workers\DataWorker;
+use FastRaven\Workers\AuthWorker;
 
 return function($request) {
     $userId = AuthWorker::getAuthorizedUserID();
@@ -468,7 +468,7 @@ LogWorker::error("Critical error occurred");
 
 ## Environment Configuration
 
-SmartGoblin uses a flexible environment configuration system that allows you to manage different settings for development, production, and custom environments.
+FastRaven uses a flexible environment configuration system that allows you to manage different settings for development, production, and custom environments.
 
 ### Environment Files
 
@@ -606,7 +606,7 @@ Example test:
 
 ```php
 use PHPUnit\Framework\TestCase;
-use SmartGoblin\Workers\Bee;
+use FastRaven\Workers\Bee;
 
 class BeeTest extends TestCase
 {

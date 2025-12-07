@@ -182,9 +182,14 @@ $config = Config::new("${SITE_NAME}", false);
 // Cookie Session Configuration
 $config->configureAuthorization("YOURSESSIONNAME", 7, Bee::env("SITE_ADDRESS", "localhost"));
 
-// Redirect Configuration
+// Where to redirect if route not found.
 $config->configureNotFoundRedirects("/");
-$config->configureUnauthorizedRedirects("/login", "");
+
+// Where to redirect if not authorized. Leave subdomain empty to use the main domain. DO NOT USE a restricted site.
+$config->configureUnauthorizedRedirects("/", "");
+
+// Define whether to register logs or restrict what data to register.
+$config->configurePrivacy(true, true);
 
 return $config;
 EOF

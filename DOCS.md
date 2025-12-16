@@ -42,31 +42,112 @@ graph TD
 
 ### Directory Structure
 
+**Framework Structure:**
+
 ```
 framework/
 ├── src/
 │   ├── Components/        # Core components
-│   │   ├── Core/          # Config, Template
+│   │   ├── Core/          # Config, Template, Mail
+│   │   ├── Data/          # Collection, Item
 │   │   ├── Http/          # Request, Response
 │   │   └── Routing/       # Router, Endpoint
 │   ├── Exceptions/        # Custom exceptions
 │   ├── Internal/          # Internal
 │   │   ├── Core/          # Kernel
-│   │   ├── Slave/         # AuthSlave, DataSlave, etc.
-│   │   └── Stash/         # LogStash
+│   │   ├── Slave/         # AuthSlave, DataSlave, MailSlave, etc.
+│   │   ├── Stash/         # LogStash
+│   │   └── Template/      # main.php, lib.js
 │   ├── Workers/           # Public API for developers
 │   │   ├── AuthWorker.php
 │   │   ├── DataWorker.php
 │   │   ├── HeaderWorker.php
 │   │   ├── LogWorker.php
+│   │   ├── MailWorker.php
 │   │   └── Bee.php        # Utility functions
 │   └── Server.php         # Main server class
 └── tests/                 # PHPUnit tests
 ```
 
+**Project Structure:**
+
+```
+project/
+├── sites/
+│   └── main/              # Example site
+│       ├── config/
+│       │   ├── env/       # Environment variables
+│       │   │   ├── .env
+│       │   │   ├── .env.dev
+│       │   │   └── .env.prod
+│       │   ├── router/
+│       │   │   ├── api.php
+│       │   │   └── views.php
+│       │   ├── config.php
+│       │   └── template.php
+│       ├── src/
+│       │   ├── api/       # API endpoints
+│       │   ├── web/
+│       │   │   ├── assets/
+│       │   │   │   ├── scss/   # SCSS source files
+│       │   │   │   ├── js/     # JavaScript source files
+│       │   │   │   ├── fonts/
+│       │   │   │   └── img/
+│       │   │   └── views/
+│       │   │       ├── pages/      # Page templates
+│       │   │       ├── fragments/  # Reusable fragments
+│       │   │       └── mails/      # Email templates
+│       │   └── _shared/   # Shared utilities
+│       ├── public/
+│       │   └── assets/
+│       │       ├── css/   # Compiled CSS
+│       │       ├── js/    # Compiled/obfuscated JS
+│       │       ├── fonts/
+│       │       └── img/
+│       ├── storage/
+│       │   ├── cache/
+│       │   ├── logs/
+│       │   └── uploads/
+│       ├── .htaccess
+│       └── index.php
+└── ops/                   # Build and deployment scripts
+    ├── build.sh
+    ├── deploy.sh
+    └── watch.sh
+```
+
 ---
 
 ## Core Components
+
+### File Organization
+
+**Views:**
+- **Pages**: `src/web/views/pages/` - Main HTML page templates
+- **Fragments**: `src/web/views/fragments/` - Reusable HTML snippets (headers, footers, etc.)
+- **Mails**: `src/web/views/mails/` - Email templates for MailWorker
+
+**API Endpoints:**
+- `src/api/` - PHP files that return Response objects
+
+**Assets:**
+- **Source**: `src/web/assets/`
+  - `scss/` - SCSS source files
+  - `js/` - JavaScript source files  
+  - `fonts/` - Font files
+  - `img/` - Image source files
+- **Public**: `public/assets/`
+  - `css/` - Compiled CSS (from SCSS)
+  - `js/` - Compiled/obfuscated JavaScript
+  - `fonts/` - Public fonts
+  - `img/` - Public images
+
+**Configuration:**
+- `config/config.php` - Main site configuration
+- `config/template.php` - Template configuration
+- `config/router/views.php` - View routes
+- `config/router/api.php` - API routes
+- `config/env/.env*` - Environment variables
 
 ### Server
 
@@ -113,15 +194,104 @@ Manages HTML templates, assets, and metadata.
 ```php
 $template = Template::new("Page Title", "1.0.0", "en");
 
-// Add assets
-$template->addStyle("styles/main.css");
-$template->addScript("scripts/app.js");
+// Add assets (paths relative to public/assets/)
+$template->addStyle("main.css");      // Will load from public/assets/css/main.css
+$template->addScript("app.js");       // Will load from public/assets/js/app.js
 
 // Add autofill (auto-populate DOM from API)
 $template->addAutofill("#username", "/api/user/name");
 
+// Add fragments (before/after main content)
+$template->setBeforeFragments(["header.html", "nav.html"]);
+$template->setAfterFragments(["footer.html"]);
+
 // Merge templates
 $template->merge($anotherTemplate);
+```
+
+**Fragment Files:**
+
+Fragments are reusable HTML snippets stored in `src/web/views/fragments/` that can be injected before or after your main content.
+
+```php
+// Set fragments that appear before main content
+$template->setBeforeFragments(["header.html"]);
+
+// Set fragments that appear after main content  
+$template->setAfterFragments(["footer.html", "analytics.html"]);
+```
+
+### Lib (JavaScript)
+
+The `Lib` class is automatically included in templates and provides client-side utility methods for interacting with your API endpoints. It's located in the framework's Template folder at `src/Internal/Template/lib.js`.
+
+#### Static Methods
+
+**`Lib.request(api, method, data)`**
+
+Sends an AJAX request to an API endpoint with automatic CSRF token handling.
+
+**Parameters:**
+- `api` (string) - URL of the API endpoint
+- `method` (string) - HTTP method to use (e.g., `"GET"`, `"POST"`, `"PUT"`, `"DELETE"`)
+- `data` (Object, optional) - Data to send with the request (automatically JSON-stringified)
+
+**Returns:**
+- `Promise` - Resolves with the response from the API endpoint, or rejects with an error
+
+**Features:**
+- Automatically includes CSRF token from `window.CSRF_TOKEN` in request headers
+- Sets `Content-Type: application/json` header
+- Uses jQuery's `$.ajax()` under the hood
+- JSON-stringifies request data automatically
+
+**Example Usage:**
+
+```javascript
+// GET request
+Lib.request("/api/user/profile", "GET")
+    .then(response => {
+        console.log("User profile:", response.data);
+    })
+    .catch(error => {
+        console.error("Error:", error);
+    });
+
+// POST request with data
+Lib.request("/api/user/update", "POST", {
+    name: "John Doe",
+    email: "john@example.com"
+})
+    .then(response => {
+        console.log("Update successful:", response);
+    })
+    .catch(error => {
+        console.error("Update failed:", error);
+    });
+```
+
+#### Autofill Integration
+
+The `Lib` class automatically processes autofill configurations added via `Template::addAutofill()`. When the page loads, it fetches data from specified API endpoints and populates DOM elements:
+
+```php
+// In your PHP configuration
+$template->addAutofill("#username", "/api/user/name");
+$template->addAutofill(".user-email", "/api/user/email");
+```
+
+```javascript
+// Automatically executed on page load
+// Fetches from /api/user/name and sets content of #username element
+// Uses Lib.request() internally
+```
+
+The autofill system expects API responses in the format:
+```json
+{
+    "success": true,
+    "data": "value to display"
+}
 ```
 
 ### Router
@@ -152,19 +322,46 @@ Defines individual routes.
 ```php
 // View endpoint
 Endpoint::view(
-    $restricted,    // Requires auth?
-    "/path",        // URL path
-    "file.html",    // File in src/views/
-    Template::flex()// Optional template override
+    $restricted,           // Requires auth?
+    "/path",               // URL path
+    "file.html",           // File in src/views/
+    Template::flex(),      // Optional template override
+    $unauthorizedExclusive // Optional: only for unauthorized users (default: false)
 );
 
 // API endpoint
 Endpoint::api(
-    $restricted,    // Requires auth?
-    "POST",         // HTTP method
-    "/path",        // URL path (relative to /api/)
-    "file.php"      // File in src/api/
+    $restricted,           // Requires auth?
+    "POST",                // HTTP method
+    "/path",               // URL path (relative to /api/)
+    "file.php",            // File in src/api/
+    $unauthorizedExclusive // Optional: only for unauthorized users (default: false)
 );
+```
+
+#### Authentication Control
+
+The `$restricted` and `$unauthorizedExclusive` parameters control access:
+
+- **`$restricted = false`** - Endpoint is accessible to everyone (default: public)
+- **`$restricted = true`** - Endpoint requires authentication
+- **`$unauthorizedExclusive = true`** - Endpoint is ONLY accessible to unauthorized users (e.g., login/register pages)
+- **`$unauthorizedExclusive = false`** - No unauthorized-only restriction (default)
+
+**Common use cases:**
+
+```php
+// Public endpoint (anyone can access)
+Endpoint::view(false, "/", "home.html");
+
+// Protected endpoint (requires login)
+Endpoint::view(true, "/dashboard", "dashboard.html");
+
+// Unauthorized-only endpoint (login page - redirects if already logged in)
+Endpoint::view(false, "/login", "login.html", null, true);
+
+// API registration endpoint (only for non-logged-in users)
+Endpoint::api(false, "POST", "/register", "register.php", true);
 ```
 
 ### Request
@@ -264,7 +461,7 @@ $user = DataWorker::getOneById("users", ["id", "name"], 1);
 $user = DataWorker::getOneWhere(
     "users",
     ["id", "name", "email"],
-    ["email = ?"],
+    ["email"],
     ["user@example.com"]
 );
 
@@ -272,7 +469,7 @@ $user = DataWorker::getOneWhere(
 $users = DataWorker::getAllWhere(
     "users",
     ["id", "name"],
-    ["active = ?"],
+    ["active"],
     [1]
 );
 
@@ -288,10 +485,61 @@ $success = DataWorker::updateWhere(
     "users",
     ["name", "email"],
     ["Jane", "jane@example.com"],
-    ["id = ?"],
+    ["id"],
     [1]
 );
+
+// Get all without conditions
+$allUsers = DataWorker::getAll("users", ["id", "name", "email"]);
+
+// Get all with ordering and pagination
+$users = DataWorker::getAllWhere(
+    "users",
+    ["id", "name"],
+    ["active"],
+    [1],
+    "created_at DESC",  // ORDER BY
+    10,                 // LIMIT
+    20                  // OFFSET
+);
+
+// Batch insert (transaction-based)
+$success = DataWorker::insertBatch(
+    "users",
+    ["name", "email"],
+    [
+        ["Alice", "alice@example.com"],
+        ["Bob", "bob@example.com"]
+    ]
+);
+
+// Get last insert ID
+$id = DataWorker::getLastInsertId();
+
+// Update by ID
+$success = DataWorker::updateById("users", ["name"], ["John Doe"], 1);
+
+// Delete by ID
+$success = DataWorker::deleteById("users", 1);
+
+// Delete by conditions
+$success = DataWorker::deleteWhere("users", ["active"], [0]);
+
+// Count rows with conditions
+$count = DataWorker::count("users", ["active"], [1]);
+
+// Count all rows
+$total = DataWorker::countAll("users");
+
+// Check if row exists
+$exists = DataWorker::exists("users", ["email"], ["test@example.com"]);
+
+// Check if ID exists
+$exists = DataWorker::existsById("users", 1);
+
 ```
+
+
 
 ### HeaderWorker
 
@@ -318,6 +566,88 @@ LogWorker::warning("Invalid input detected");
 
 // Error
 LogWorker::error("Database connection failed");
+
+// Debug
+LogWorker::debug("User {$userId} performed action");
+```
+
+### MailWorker
+
+Email sending system using PHPMailer.
+
+```php
+use FastRaven\Workers\MailWorker;
+use FastRaven\Components\Core\Mail;
+use FastRaven\Components\Data\Item;
+use FastRaven\Components\Data\Collection;
+
+// Create origin and destination
+$origin = Item::new("Site Name", "noreply@example.com");
+$destination = Item::new("John Doe", "john@example.com");
+
+// Create mail
+$mail = Mail::new(
+    $origin,
+    $destination,
+    "Welcome to Our Site",
+    "emails/welcome.html"  // Template in src/views/
+);
+
+// Optional: Add BCC recipients
+$bccList = Collection::new();
+$bccList->add(Item::new("Admin", "admin@example.com"));
+$mail->setBccMails($bccList);
+
+// Optional: Add placeholder replacements
+$replacements = Collection::new();
+$replacements->add(Item::new("{{USERNAME}}", "John"));
+$replacements->add(Item::new("{{ACTIVATION_LINK}}", "https://example.com/activate"));
+$mail->setReplaceValues($replacements);
+
+// Optional: Add attachments
+$attachments = Collection::new();
+$attachments->add(Item::new("document.pdf", "files/document.pdf")); // Attachments in src/assets/
+$mail->setAttachments($attachments);
+
+// Optional: Set timeout (default: 3000ms)
+$mail->setTimeout(100);
+
+// Send email
+if (MailWorker::sendMail($mail)) {
+    Response::new(true, 200, "Email sent successfully");
+} else {
+    Response::new(false, 500, "Failed to send email");
+}
+```
+
+**SMTP Configuration:**
+
+Configure SMTP settings in your `.env` file:
+
+```env
+SMTP_HOST=smtp.domain.com
+SMTP_PORT=587
+SMTP_USER=email@domain.com
+SMTP_PASS=secret
+```
+
+**Email Template Example:**
+
+Create `src/views/emails/welcome.html`:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome</title>
+</head>
+<body>
+    <h1>Welcome {{USERNAME}}!</h1>
+    <p>Thank you for joining us.</p>
+    <a href="{{ACTIVATION_LINK}}">Activate your account</a>
+</body>
+</html>
 ```
 
 ---
@@ -462,6 +792,7 @@ if (password_verify($password, $hash)) {
 LogWorker::log("User {$userId} performed action");
 LogWorker::warning("Suspicious activity detected");
 LogWorker::error("Critical error occurred");
+LogWorker::debug("User {$userId} performed action");
 ```
 
 ---
@@ -501,26 +832,45 @@ Based on your `STATE` value, create the corresponding environment file:
 # If STATE=staging, create .env.staging
 ```
 
+**Example `.env`:**
+
+```env
+STATE=dev
+VERSION=0.0.1
+```
+
 **Example `.env.dev`:**
 
 ```env
-# Development environment
+SITE_ADDRESS=localhost
+
 DB_HOST=localhost
+
 DB_NAME=myapp_dev
 DB_USER=root
 DB_PASS=
-DEBUG=true
+
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=noreply@example.com
+SMTP_PASS=
 ```
 
 **Example `.env.prod`:**
 
 ```env
-# Production environment
-DB_HOST=production-db.example.com
+SITE_ADDRESS=example.com
+
+DB_HOST=prod-db.example.com
+
 DB_NAME=myapp_production
 DB_USER=prod_user
 DB_PASS=secure_password_here
-DEBUG=false
+
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=noreply@example.com
+SMTP_PASS=smtp_password_here
 ```
 
 ### How It Works
@@ -672,6 +1022,7 @@ $template->setPostDOMFiles(["footer.php"]);
 | `DataWorker` | Database operations |
 | `HeaderWorker` | HTTP headers |
 | `LogWorker` | Logging |
+| `MailWorker` | Email sending |
 
 ---
 

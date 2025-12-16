@@ -2,13 +2,11 @@
 
 use FastRaven\Components\Core\Config;
 
-use FastRaven\Workers\Bee;
-
 // Main Configuration. siteName is not the subdomain.
 $config = Config::new("main", false);
 
-// Cookie Session Configuration. Domain can be set to .domain.com to accept all subdomains inside your domain.
-$config->configureAuthorization("YOURSESSIONNAME", 7, Bee::env("SITE_ADDRESS", "localhost"));
+// Cookie Session Configuration.
+$config->configureAuthorization("YOURSESSIONNAME", 7, false);
 
 // Where to redirect if route not found.
 $config->configureNotFoundRedirects("/");

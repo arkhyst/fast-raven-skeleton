@@ -193,7 +193,7 @@ use FastRaven\Workers\Bee;
 $config = Config::new("${SITE_NAME}", false);
 
 // Cookie Session Configuration
-$config->configureAuthorization("YOURSESSIONNAME", 7, Bee::env("SITE_ADDRESS", "localhost"));
+$config->configureAuthorization("YOURSESSIONNAME", 7, false);
 
 // Where to redirect if route not found.
 $config->configureNotFoundRedirects("/");
@@ -293,6 +293,7 @@ EOF
     # .env.dev-example
     cat > "$SITE_PATH/config/env/.env.dev-example" <<'EOF'
 SITE_ADDRESS=fastraven.loc
+AUTH_DOMAIN=.fastraven.loc
 
 DB_HOST=localhost
 
@@ -309,6 +310,7 @@ EOF
     # .env.prod-example
     cat > "$SITE_PATH/config/env/.env.prod-example" <<'EOF'
 SITE_ADDRESS=fastraven.loc
+AUTH_DOMAIN=.fastraven.loc
 
 DB_HOST=localhost
 
@@ -331,6 +333,7 @@ EOF
     # Create actual .env.dev file
     cat > "$SITE_PATH/config/env/.env.dev" <<'EOF'
 SITE_ADDRESS=fastraven.loc
+AUTH_DOMAIN=.fastraven.loc
 
 DB_HOST=localhost
 
@@ -347,6 +350,7 @@ EOF
     # Create actual .env.prod file
     cat > "$SITE_PATH/config/env/.env.prod" <<'EOF'
 SITE_ADDRESS=fastraven.loc
+AUTH_DOMAIN=.fastraven.loc
 
 DB_HOST=localhost
 

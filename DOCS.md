@@ -818,7 +818,7 @@ Copy `.env-example` to `.env` and set your `STATE` variable:
 ```env
 # .env
 STATE=dev
-SITE_ADDRESS=localhost
+VERSION=0.0.1
 ```
 
 **2. Create environment-specific files:**
@@ -843,6 +843,7 @@ VERSION=0.0.1
 
 ```env
 SITE_ADDRESS=localhost
+AUTH_DOMAIN=localhost
 
 DB_HOST=localhost
 
@@ -860,6 +861,7 @@ SMTP_PASS=
 
 ```env
 SITE_ADDRESS=example.com
+AUTH_DOMAIN=.example.com
 
 DB_HOST=prod-db.example.com
 

@@ -606,7 +606,7 @@ $mail->setReplaceValues($replacements);
 
 // Optional: Add attachments
 $attachments = Collection::new();
-$attachments->add(Item::new("document.pdf", "files/document.pdf")); // Attachments in src/assets/
+$attachments->add(Item::new("document.pdf", "files/document.pdf")); // Attachments in storage/uploads
 $mail->setAttachments($attachments);
 
 // Optional: Set timeout (default: 3000ms)

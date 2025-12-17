@@ -82,21 +82,34 @@ if [ -n "$1" ]; then
     mkdir -p "$SITE_PATH/config/env"
     mkdir -p "$SITE_PATH/config/router"
     mkdir -p "$SITE_PATH/src/api"
-    mkdir -p "$SITE_PATH/src/views"
-    mkdir -p "$SITE_PATH/src/resources"
-    mkdir -p "$SITE_PATH/public/assets"
-    mkdir -p "$SITE_PATH/public/resources"
+    mkdir -p "$SITE_PATH/src/_shared"
+    mkdir -p "$SITE_PATH/src/web/views/pages"
+    mkdir -p "$SITE_PATH/src/web/views/fragments"
+    mkdir -p "$SITE_PATH/src/web/views/mails"
+    mkdir -p "$SITE_PATH/src/web/assets/scss"
+    mkdir -p "$SITE_PATH/src/web/assets/js"
+    mkdir -p "$SITE_PATH/src/web/assets/fonts"
+    mkdir -p "$SITE_PATH/src/web/assets/img"
+    mkdir -p "$SITE_PATH/public/assets/css"
+    mkdir -p "$SITE_PATH/public/assets/js"
+    mkdir -p "$SITE_PATH/public/assets/fonts"
+    mkdir -p "$SITE_PATH/public/assets/img"
+    mkdir -p "$SITE_PATH/storage/cache"
+    mkdir -p "$SITE_PATH/storage/logs"
+    mkdir -p "$SITE_PATH/storage/uploads"
     
     #==========================================================================
     # CREATE .gitkeep FILES
     #==========================================================================
         
-    touch "$SITE_PATH/config/router/.gitkeep"
-    touch "$SITE_PATH/src/api/.gitkeep"
-    touch "$SITE_PATH/src/resources/.gitkeep"
-    touch "$SITE_PATH/src/views/.gitkeep"
-    touch "$SITE_PATH/public/assets/.gitkeep"
-    touch "$SITE_PATH/public/resources/.gitkeep"
+    touch "$SITE_PATH/src/_shared/.gitkeep"
+    touch "$SITE_PATH/src/web/assets/fonts/.gitkeep"
+    touch "$SITE_PATH/src/web/assets/img/.gitkeep"
+    touch "$SITE_PATH/public/assets/fonts/.gitkeep"
+    touch "$SITE_PATH/public/assets/img/.gitkeep"
+    touch "$SITE_PATH/storage/cache/.gitkeep"
+    touch "$SITE_PATH/storage/logs/.gitkeep"
+    touch "$SITE_PATH/storage/uploads/.gitkeep"
     
     #==========================================================================
     # CREATE .gitignore
@@ -180,11 +193,16 @@ use FastRaven\Workers\Bee;
 $config = Config::new("${SITE_NAME}", false);
 
 // Cookie Session Configuration
-$config->configureAuthorization("YOURSESSIONNAME", 7, Bee::env("SITE_ADDRESS", "localhost"));
+$config->configureAuthorization("YOURSESSIONNAME", 7, false);
 
-// Redirect Configuration
+// Where to redirect if route not found.
 $config->configureNotFoundRedirects("/");
-$config->configureUnauthorizedRedirects("/login", "");
+
+// Where to redirect if not authorized. Leave subdomain empty to use the main domain. DO NOT USE a restricted site.
+$config->configureUnauthorizedRedirects("/", "");
+
+// Define whether to register logs or restrict what data to register.
+$config->configurePrivacy(true, true);
 
 return $config;
 EOF
@@ -196,37 +214,70 @@ EOF
     # template.php
     cat > "$SITE_PATH/config/template.php" <<'EOF'
 <?php
+
 use FastRaven\Components\Core\Template;
 
-$template = Template::new("FastRaven Site", "1.0.0", "en");
+use FastRaven\Workers\Bee;
 
-// Add your styles and scripts here
-// $template->addStyle("resources/main.css");
-// $template->addScript("resources/main.js");
+// Default template for all views.
+$template = Template::new("Fast Raven Site", Bee::env("VERSION", "0.0.1"), "en");
 
 return $template;
+
+?>
 EOF
     
     # router/views.php
     cat > "$SITE_PATH/config/router/views.php" <<'EOF'
 <?php
-use FastRaven\Components\Routing\Router;
-use FastRaven\Components\Routing\Endpoint;
 
-return Router::endpoints([
+use FastRaven\Components\Core\Template;
+use FastRaven\Components\Routing\Endpoint;
+use FastRaven\Components\Routing\Router;
+use FastRaven\Components\Data\Collection;
+use FastRaven\Components\Data\Item;
+
+// View Router configuration. You can append a template to each view.
+$viewRouter = Router::endpoints([
     Endpoint::view(false, "/", "main.html"),
+    Endpoint::view(false, "/ping", "ping.html", Template::flex(title: "Ping test", autofill: Collection::new([
+        Item::new("#api-result-span", "/api/ping")
+    ])))
 ]);
+
+return $viewRouter;
+
+// If router gets to big, use Router::files() instead and refer to config/router folder.
+// $viewRouter = Router::files(Collection::new([
+//     Item::new("/", "main.php"),
+//     Item::new("/admin", "admin.php"),
+// ]));
+
+?>
 EOF
     
     # router/api.php
     cat > "$SITE_PATH/config/router/api.php" <<'EOF'
 <?php
-use FastRaven\Components\Routing\Router;
-use FastRaven\Components\Routing\Endpoint;
 
-return Router::endpoints([
-    Endpoint::api(false, "GET", "/health", "Health.php"),
+use FastRaven\Components\Routing\Endpoint;
+use FastRaven\Components\Routing\Router;
+
+// API Router configuration. /api/ prefix is automatically added.
+$apiRouter = Router::endpoints([
+    Endpoint::api(false, "GET","/health", "Health.php"),
+    Endpoint::api(false, "GET","/ping", "Pong.php")
 ]);
+
+return $apiRouter;
+
+// If router gets to big, use Router::files() instead and refer to config/router folder.
+// $apiRouter = Router::files(Collection::new([
+//     Item::new("/v1", "main.php"),
+//     Item::new("/v2", "new_version/main.php"),
+// ]));
+
+?>
 EOF
     
     #==========================================================================
@@ -236,53 +287,119 @@ EOF
     # .env-example
     cat > "$SITE_PATH/config/env/.env-example" <<'EOF'
 STATE=dev
-SITE_ADDRESS=localhost
+VERSION=0.0.1
 EOF
     
     # .env.dev-example
     cat > "$SITE_PATH/config/env/.env.dev-example" <<'EOF'
-# Development Environment
+SITE_ADDRESS=fastraven.loc
+AUTH_DOMAIN=.fastraven.loc
+
 DB_HOST=localhost
-DB_NAME=smartgoblin_dev
-DB_USER=root
-DB_PASS=
-DEBUG=true
+
+DB_NAME=test
+DB_USER=raven
+DB_PASS=secret
+
+SMTP_HOST=smtp.fastraven.loc
+SMTP_PORT=587
+SMTP_USER=raven@fastraven.loc
+SMTP_PASS=secret
 EOF
     
     # .env.prod-example
     cat > "$SITE_PATH/config/env/.env.prod-example" <<'EOF'
-# Production Environment
+SITE_ADDRESS=fastraven.loc
+AUTH_DOMAIN=.fastraven.loc
+
 DB_HOST=localhost
-DB_NAME=smartgoblin_prod
-DB_USER=prod_user
-DB_PASS=secure_password
-DEBUG=false
+
+DB_NAME=test
+DB_USER=raven
+DB_PASS=secret
+
+SMTP_HOST=smtp.fastraven.loc
+SMTP_PORT=587
+SMTP_USER=raven@fastraven.loc
+SMTP_PASS=secret
 EOF
     
     # Create actual .env file
     cat > "$SITE_PATH/config/env/.env" <<'EOF'
 STATE=dev
-SITE_ADDRESS=localhost
+VERSION=0.0.1
 EOF
     
     # Create actual .env.dev file
     cat > "$SITE_PATH/config/env/.env.dev" <<'EOF'
-# Development Environment
+SITE_ADDRESS=fastraven.loc
+AUTH_DOMAIN=.fastraven.loc
+
 DB_HOST=localhost
-DB_NAME=smartgoblin_dev
-DB_USER=root
-DB_PASS=
-DEBUG=true
+
+DB_NAME=test
+DB_USER=raven
+DB_PASS=secret
+
+SMTP_HOST=smtp.fastraven.loc
+SMTP_PORT=587
+SMTP_USER=raven@fastraven.loc
+SMTP_PASS=secret
+EOF
+    
+    # Create actual .env.prod file
+    cat > "$SITE_PATH/config/env/.env.prod" <<'EOF'
+SITE_ADDRESS=fastraven.loc
+AUTH_DOMAIN=.fastraven.loc
+
+DB_HOST=localhost
+
+DB_NAME=test
+DB_USER=raven
+DB_PASS=secret
+
+SMTP_HOST=smtp.fastraven.loc
+SMTP_PORT=587
+SMTP_USER=raven@fastraven.loc
+SMTP_PASS=secret
 EOF
     
     #==========================================================================
     # CREATE DEFAULT VIEW
     #==========================================================================
     
-    cat > "$SITE_PATH/src/views/main.html" <<'EOF'
+    cat > "$SITE_PATH/src/web/views/pages/main.html" <<'EOF'
     <h1>Welcome to FastRaven!</h1>
     <p>Your new site is ready to go.</p>
-    <p>Edit this file at <code>src/views/main.html</code></p>
+    <p>Edit this file at <code>src/web/views/pages/main.html</code></p>
+EOF
+    
+    # ping.html
+    cat > "$SITE_PATH/src/web/views/pages/ping.html" <<'EOF'
+<h4>PING -> </h4>
+<span id="api-result-span">...</span>
+EOF
+    
+    #==========================================================================
+    # CREATE DEFAULT FRAGMENTS
+    #==========================================================================
+    
+    # header.html
+    cat > "$SITE_PATH/src/web/views/fragments/header.html" <<'EOF'
+<div style="display: flex; justify-content: space-between;">
+    <h3>This is a test fragment</h3>
+    <h3>This can be added to templates so it gets reused</h3>
+</div>
+EOF
+    
+    #==========================================================================
+    # CREATE DEFAULT MAIL TEMPLATE
+    #==========================================================================
+    
+    # welcome.html
+    cat > "$SITE_PATH/src/web/views/mails/welcome.html" <<'EOF'
+<h1>This is a test email</h1>
+<p>Thank you for using Fast Raven!</p>
 EOF
     
     #==========================================================================
@@ -299,6 +416,32 @@ return function($request) {
         "timestamp" => time()
     ]);
 };
+EOF
+    
+    # Pong.php
+    cat > "$SITE_PATH/src/api/Pong.php" <<'EOF'
+<?php
+
+use FastRaven\Components\Http\Request;
+use FastRaven\Components\Http\Response;
+
+return function(Request $request): Response {
+    return Response::new(true, 200, "This should give a little information.", "PONG");
+};
+EOF
+    
+    #==========================================================================
+    # CREATE DEFAULT ASSETS
+    #==========================================================================
+    
+    # style.scss (empty)
+    touch "$SITE_PATH/src/web/assets/scss/style.scss"
+    
+    # main.js
+    cat > "$SITE_PATH/src/web/assets/js/main.js" <<'EOF'
+$(document).ready(function() {
+    
+});
 EOF
     
     #==========================================================================
@@ -331,7 +474,7 @@ EOF
     echo -e "${YELLOW}Next steps:${NC}"
     echo -e "  1. Add '${SITE_NAME}.local' to /etc/hosts"
     echo -e "  2. Edit configuration in ${SITE_NAME}/config/"
-    echo -e "  3. Add your views in ${SITE_NAME}/src/views/"
+    echo -e "  3. Add your views in ${SITE_NAME}/src/web/views/pages/"
     echo -e "  4. Add your API endpoints in ${SITE_NAME}/src/api/"
     echo ""
     

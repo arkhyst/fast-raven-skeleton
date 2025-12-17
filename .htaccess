@@ -1,6 +1,6 @@
 RewriteEngine On
 
-RewriteRule ^$ main/ [L]
-RewriteRule (.*) main/$1 [L]
+RewriteRule ^$ sites/main/ [L]
+RewriteRule (.*) sites/main/$1 [L]
 
 Options -Indexes

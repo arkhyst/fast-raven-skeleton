@@ -58,7 +58,7 @@ if [ -z "$2" ]; then
 fi
 
 DOMAIN="$1"
-SITE_FOLDER="$2"
+SITE_FOLDER="sites/$2"
 
 #==============================================================================
 # DIRECTORY SETUP
@@ -70,7 +70,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROJECT_NAME="$(basename "$PROJECT_ROOT")"
 
 # Validate site folder exists
-SITE_PATH="$PROJECT_ROOT/sites/$SITE_FOLDER"
+SITE_PATH="$PROJECT_ROOT/$SITE_FOLDER"
 
 if [ ! -d "$SITE_PATH" ]; then
     print_error "Site folder does not exist: $SITE_PATH"

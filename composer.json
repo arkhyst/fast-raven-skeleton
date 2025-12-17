@@ -5,6 +5,6 @@
     "license": "MIT",
     "require": {
         "php": "^8.4",
-        "fast-raven/library": "^0.2"
+        "fast-raven/library": "^0.3"
     }
 }

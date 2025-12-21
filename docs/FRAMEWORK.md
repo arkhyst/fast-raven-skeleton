@@ -111,7 +111,7 @@ framework/
 │   │   ├── NotAuthorizedException.php # 401 - Unauthorized access
 │   │   ├── AlreadyAuthorizedException.php # 403 - Already logged in
 │   │   ├── BadImplementationException.php # 500 - API doesn't return Response
-│   │   └── EndpointFileDoesNotExist.php   # 500 - File missing
+│   │   └── EndpointFileNotFoundException.php   # 500 - File missing
 │   ├── Internal/             # Internal components (not for direct use)
 │   │   ├── Core/             # Kernel
 │   │   ├── Slave/            # AuthSlave, DataSlave, HeaderSlave, LogSlave, MailSlave, RouterSlave, ValidationSlave
@@ -1253,7 +1253,7 @@ use FastRaven\Exceptions\NotFoundException;
 use FastRaven\Exceptions\NotAuthorizedException;
 use FastRaven\Exceptions\AlreadyAuthorizedException;
 use FastRaven\Exceptions\BadImplementationException;
-use FastRaven\Exceptions\EndpointFileDoesNotExist;
+use FastRaven\Exceptions\EndpointFileNotFoundException;
 
 // 404 - No matching route
 throw new NotFoundException();
@@ -1271,7 +1271,7 @@ throw new AlreadyAuthorizedException();
 throw new BadImplementationException("/path/to/file.php");
 
 // 500 - Endpoint file missing
-throw new EndpointFileDoesNotExist("/path/to/file.php");
+throw new EndpointFileNotFoundException("/path/to/file.php");
 ```
 
 ### SmartException Properties
@@ -1291,7 +1291,7 @@ $exception->getMessage();         // string: Internal message (logged)
 | `NotAuthorizedException(true)` | 401 JSON | 301 redirect to subdomain |
 | `AlreadyAuthorizedException` | 403 JSON | 301 redirect to `notFoundPathRedirect` |
 | `BadImplementationException` | 500 JSON | 500 response |
-| `EndpointFileDoesNotExist` | 500 JSON | 500 response |
+| `EndpointFileNotFoundException` | 500 JSON | 500 response |
 
 ---
 

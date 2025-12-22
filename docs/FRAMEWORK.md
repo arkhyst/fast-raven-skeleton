@@ -99,6 +99,9 @@ graph LR
 
 ```
 framework/
+├── docs/
+│   ├── FRAMEWORK.md          # Framework documentation
+│   └── AUDIT.md              # Most recent security audit report
 ├── src/
 │   ├── Components/           # Core components (public API)
 │   │   ├── Core/             # Config, Template, Mail
@@ -492,28 +495,51 @@ Represents an HTTP request. Located at `src/Components/Http/Request.php`. Availa
 
 ```php
 // In an API endpoint file (src/api/example.php)
+use FastRaven\Components\Http\SanitizeType;
+
 return function(Request $request): Response {
     $method = $request->getMethod();           // "GET", "POST", "PUT", "DELETE", "PATCH"
     $path = $request->getPath();               // "/api/users"
     $complexPath = $request->getComplexPath(); // "/api/users#POST" (path + method)
     $isApi = $request->isApi();                // true (checks if path starts with /api/)
     $requestId = $request->getInternalID();    // Unique 8-char hex ID (e.g., "a1b2c3d4")
-    $originInfo = $request->getOriginInfo();   // ["IP" => "192.168.1.1"]
+    $remoteAddress = $request->getRemoteAddress();   // "192.168.1.1"
     
-    // Get POST/PUT data (automatically sanitized)
-    $username = $request->getDataItem("username");  // string|int|float|bool|null
-    $email = $request->getDataItem("email");
+    // Get query string parameters (URL: /api/users?page=1&search=john)
+    $page = $request->get('page');                                    // "1" (RAW)
+    $search = $request->get('search', SanitizeType::ONLY_ALPHA);      // Alphanumeric only
+    
+    // Get body data (JSON POST/PUT)
+    $username = $request->post('username', SanitizeType::ONLY_ALPHA); // Alphanumeric only
+    $comment = $request->post('comment', SanitizeType::SANITIZED);    // No HTML tags
+    $content = $request->post('content', SanitizeType::ENCODED);      // HTML entities encoded
     
     return Response::new(true, 200, "Success");
 };
 ```
 
-#### Data Sanitization
+#### SanitizeType Enum
 
-Request data is automatically sanitized:
-- String values are trimmed and stripped of HTML tags
-- Arrays are recursively sanitized
-- Special characters are preserved (no htmlspecialchars)
+Sanitization levels cascade: higher levels include all previous transformations.
+
+```
+RAW ─────────────────────── No changes
+  └─ SAFE ────────────────── Strips null bytes + PHP tags
+        ├─ ENCODED ───────── + htmlspecialchars (non-destructive)
+        └─ SANITIZED ─────── + strip_tags (destructive)
+              └─ ONLY_ALPHA ── + alphanumeric/spaces only
+```
+
+| Level | Int | What it does | Use case |
+|-------|-----|--------------|----------|
+| `RAW` | 0 | No sanitization | Code editors, trusted input |
+| `SAFE` | 1 | Strips `\x00`, `%00`, `<?php ?>`, `<?= ?>` | Prevent PHP execution |
+| `ENCODED` | 2 | SAFE + `htmlspecialchars()` | HTML output (preserves data) |
+| `SANITIZED` | 3 | SAFE + `strip_tags()` | Plain text fields |
+| `ONLY_ALPHA` | 4 | SANITIZED + alphanumeric/spaces only | Usernames, slugs |
+
+> [!IMPORTANT]
+> `ENCODED` and `SANITIZED` are mutually exclusive branches from `SAFE`. Choose `ENCODED` to preserve data for HTML display, or `SANITIZED` to remove HTML entirely.
 
 #### Methods
 
@@ -524,8 +550,10 @@ Request data is automatically sanitized:
 | `getComplexPath()` | `string` | Path + method (e.g., `/api/users#POST`) |
 | `isApi()` | `bool` | True if path starts with `/api/` |
 | `getInternalID()` | `string` | Unique request identifier |
-| `getOriginInfo()` | `array` | Origin information (IP address) |
-| `getDataItem(key)` | `string\|int\|float\|bool\|null` | Get request data by key |
+| `getRemoteAddress()` | `string` | Remote IP address |
+| `get(key, sanitizeType?)` | `mixed` | Get query string parameter with optional sanitization |
+| `post(key, sanitizeType?)` | `mixed` | Get body data with optional sanitization |
+| `getDataItem(key)` | `mixed` | **Deprecated** - Use `post()` instead |
 
 ---
 

@@ -757,6 +757,10 @@ $userId = AuthWorker::getAuthorizedUserId();  // int or null
 // Destroy session (logout)
 AuthWorker::destroyAuthorization();
 
+// Regenerate CSRF token (for sensitive operations)
+$newToken = AuthWorker::regenerateCSRF();  // string or null
+// Return new token to client so they can update window.CSRF_TOKEN
+
 // Auto-login (queries database, creates session if valid)
 $success = AuthWorker::autologin(
     $username,            // string: User input username
@@ -793,6 +797,21 @@ fetch("/api/user/update", {
     })
 });
 ```
+
+#### CSRF Token Rotation
+
+Use `regenerateCSRF()` after sensitive operations to rotate the token:
+
+```php
+// After password change
+$user->updatePassword($newPassword);
+$newToken = AuthWorker::regenerateCSRF();
+
+return Response::new(true, 200, "Password updated", ["csrf_token" => $newToken]);
+```
+
+> [!WARNING]
+> Calling `regenerateCSRF()` invalidates the token in other open tabs. The client must update `window.CSRF_TOKEN` from the API response.
 
 ---
 

@@ -971,13 +971,14 @@ Input validation. Located at `src/Workers/ValidationWorker.php`.
 ```php
 use FastRaven\Workers\ValidationWorker;
 use FastRaven\Components\Data\ValidationFlags;
+use FastRaven\Components\Http\SanitizeType;
 
 // Email validation (uses FILTER_VALIDATE_EMAIL with Unicode support)
-$isValid = ValidationWorker::email($request->getDataItem("email"));
+$isValid = ValidationWorker::email($request->post("email", SanitizeType::SANITIZED));
 
-// Password validation
+// Password validation (SANITIZED strips HTML but preserves special chars for passwords)
 $isValid = ValidationWorker::password(
-    $request->getDataItem("password"),
+    $request->post("password", SanitizeType::SANITIZED),
     ValidationFlags::password(
         minLength: 8,
         maxLength: 128,
@@ -988,27 +989,27 @@ $isValid = ValidationWorker::password(
     )
 );
 
-// Age validation
+// Age validation (cast to int, no string sanitization needed)
 $isValid = ValidationWorker::age(
-    (int)$request->getDataItem("age"),
+    (int)$request->post("age"),
     ValidationFlags::age(minAge: 18, maxAge: 120)
 );
 
-// Username validation
+// Username validation (ONLY_ALPHA for alphanumeric only)
 $isValid = ValidationWorker::username(
-    $request->getDataItem("username"),
+    $request->post("username", SanitizeType::ONLY_ALPHA),
     ValidationFlags::username(minLength: 3, maxLength: 20)
 );
 
-// Phone validation (country code 1-999, length 10-15)
+// Phone validation (SANITIZED for numbers)
 $isValid = ValidationWorker::phone(
-    (int)$request->getDataItem("country_code"),
-    $request->getDataItem("phone")
+    (int)$request->post("country_code"),
+    $request->post("phone", SanitizeType::SANITIZED)
 );
 ```
 
 > [!TIP]
-> All validation methods return `false` if the input is null, so they're safe to use directly with `$request->getDataItem()`.
+> All validation methods return `false` if the input is null, so they're safe to use directly with `$request->post()`.
 
 ---
 
@@ -1506,7 +1507,7 @@ DataWorker::getOneWhere("users", ["id", "name"], Collection::new([
 ]));
 
 // ❌ Dangerous - never use user input for table/column names
-$column = $request->getDataItem("column");  // User input!
+$column = $request->post("column");  // User input!
 DataWorker::getOneById($column, [...], 1);  // SQL injection risk!
 ```
 
@@ -1524,8 +1525,10 @@ $hash = sha1($password);
 ### 4. Validate All Input
 
 ```php
-$email = $request->getDataItem("email");
-$password = $request->getDataItem("password");
+use FastRaven\Components\Http\SanitizeType;
+
+$email = $request->post("email", SanitizeType::SANITIZED);
+$password = $request->post("password", SanitizeType::SANITIZED);
 
 if (!ValidationWorker::email($email)) {
     return Response::new(false, 400, "Invalid email");

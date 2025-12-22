@@ -21,5 +21,3 @@ return $viewRouter;
 //     Item::new("/", "main.php"),
 //     Item::new("/admin", "admin.php"),
 // ]));
-
-?>

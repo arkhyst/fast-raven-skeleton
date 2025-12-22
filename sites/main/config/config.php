@@ -18,5 +18,3 @@ $config->configureUnauthorizedRedirects("/", "");
 $config->configurePrivacy(true, true);
 
 return $config;
-
-?>

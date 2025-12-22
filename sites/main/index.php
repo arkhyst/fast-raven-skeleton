@@ -24,5 +24,3 @@ $server->configure($config, $template, $viewRouter, $apiRouter);
 
 // This is where the magic happens.
 $server->run();
-
-?>

@@ -175,8 +175,6 @@ $server->configure($config, $template, $viewRouter, $apiRouter);
 
 // This is where the magic happens.
 $server->run();
-
-?>
 EOF
     
     #==========================================================================
@@ -223,8 +221,6 @@ use FastRaven\Workers\Bee;
 $template = Template::new("Fast Raven Site", Bee::env("VERSION", "0.0.1"), "en");
 
 return $template;
-
-?>
 EOF
     
     # router/views.php
@@ -252,8 +248,6 @@ return $viewRouter;
 //     Item::new("/", "main.php"),
 //     Item::new("/admin", "admin.php"),
 // ]));
-
-?>
 EOF
     
     # router/api.php
@@ -276,8 +270,6 @@ return $apiRouter;
 //     Item::new("/v1", "main.php"),
 //     Item::new("/v2", "new_version/main.php"),
 // ]));
-
-?>
 EOF
     
     #==========================================================================

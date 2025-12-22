@@ -8,5 +8,3 @@ use FastRaven\Workers\Bee;
 $template = Template::new("Fast Raven Site", Bee::env("VERSION", "0.0.1"), "en");
 
 return $template;
-
-?>

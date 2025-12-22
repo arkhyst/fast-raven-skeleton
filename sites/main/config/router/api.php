@@ -16,5 +16,3 @@ return $apiRouter;
 //     Item::new("/v1", "main.php"),
 //     Item::new("/v2", "new_version/main.php"),
 // ]));
-
-?>

@@ -293,6 +293,79 @@ return $config;
 
 ---
 
+### Environment Variables
+
+FastRaven uses `.env` files for environment-specific configuration. Files are loaded from `config/env/` directory.
+
+#### File Structure
+
+```
+config/env/
+├── .env              # STATE, VERSION (loaded first)
+├── .env.dev          # Development settings (when STATE=dev)
+├── .env.prod         # Production settings (when STATE=prod)
+├── .env-example      # Template for .env
+├── .env.dev-example  # Template for .env.dev
+└── .env.prod-example # Template for .env.prod
+```
+
+#### Core Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `STATE` | Environment mode (`dev` or `prod`) | `dev` |
+| `VERSION` | Application version | `1.0.0` |
+
+#### Site Configuration
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `SITE_ADDRESS` | Base domain for the site | `example.com` |
+| `AUTH_DOMAIN` | Cookie domain for global auth (with leading dot) | `.example.com` |
+
+#### Database Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DB_HOST` | Database server hostname | `localhost` |
+| `DB_NAME` | Database name | - |
+| `DB_USER` | Database username | - |
+| `DB_PASS` | Database password | - |
+| `DB_USE_SSL` | Enable SSL/TLS for MySQL connection | `false` |
+| `DB_SSL_CA` | Path to CA certificate file (when SSL enabled) | - |
+
+**SSL/TLS Usage:**
+```env
+# Production with SSL
+DB_USE_SSL=true
+DB_SSL_CA=/path/to/ca-cert.pem
+```
+
+#### SMTP Configuration
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `SMTP_HOST` | SMTP server hostname | `smtp.example.com` |
+| `SMTP_PORT` | SMTP server port | `587` |
+| `SMTP_USER` | SMTP username | `mail@example.com` |
+| `SMTP_PASS` | SMTP password | - |
+
+#### Accessing Variables
+
+```php
+use FastRaven\Workers\Bee;
+
+// Get environment variable with optional default
+$host = Bee::env("DB_HOST", "localhost");
+
+// Check environment mode
+if (Bee::isDev()) {
+    // Development-only code
+}
+```
+
+---
+
 ### Template
 
 Manages HTML templates, assets, metadata, and autofill. Located at `src/Components/Core/Template.php`.
@@ -473,6 +546,7 @@ Endpoint::api(
 Endpoint::api(false, "GET", "/health", "Health.php");                 // Public GET endpoint
 Endpoint::api(true, "POST", "/user/update", "user/Update.php");       // Protected POST endpoint  
 Endpoint::api(false, "POST", "/auth/login", "auth/Login.php", true);  // Login API (only for guests)
+Endpoint::api(false, "POST", "/auth/login", "auth/Login.php", false, 5);  // With rate limit (5/min)
 ```
 
 > [!IMPORTANT]
@@ -486,6 +560,17 @@ Endpoint::api(false, "POST", "/auth/login", "auth/Login.php", true);  // Login A
 | `true` | `false` | Authenticated users only |
 | `false` | `true` | Non-authenticated users only (login/register pages) |
 | `true` | `true` | ⚠️ Invalid combination (restricted implies auth required) |
+
+#### Rate Limiting
+
+The `$limitPerMinute` parameter (6th argument) sets a custom rate limit for the endpoint:
+
+```php
+// Login endpoint with stricter 5 req/min limit
+Endpoint::api(false, "POST", "/auth/login", "auth/Login.php", false, 5);
+```
+
+Rate limiting uses APCu cache when available. When limit is exceeded, a `429 Too Many Requests` response is returned with `Retry-After` header.
 
 ---
 
@@ -1340,147 +1425,20 @@ $exception->getMessage();         // string: Internal message (logged)
 | `AlreadyAuthorizedException` | 403 JSON | 301 redirect to `notFoundPathRedirect` |
 | `BadImplementationException` | 500 JSON | 500 response |
 | `EndpointFileNotFoundException` | 500 JSON | 500 response |
-
----
-
-## Environment Configuration
-
-### Environment Files
-
-Located in `config/env/`:
-
-| File | Purpose |
-|------|---------|
-| `.env` | Main file with `STATE` and `VERSION` |
-| `.env.dev` | Development settings |
-| `.env.prod` | Production settings |
-| `.env-example` | Template for `.env` |
-| `.env.dev-example` | Template for development |
-| `.env.prod-example` | Template for production |
-
-### Example Configuration
-
-**.env**
-```env
-STATE=dev
-VERSION=0.0.1
-```
-
-**.env.dev**
-```env
-SITE_ADDRESS=myapp.loc
-AUTH_DOMAIN=.myapp.loc
-
-DB_HOST=localhost
-DB_NAME=myapp_dev
-DB_USER=root
-DB_PASS=
-
-SMTP_HOST=smtp.mailtrap.io
-SMTP_PORT=587
-SMTP_USER=your-mailtrap-user
-SMTP_PASS=your-mailtrap-pass
-```
-
-**.env.prod**
-```env
-SITE_ADDRESS=myapp.com
-AUTH_DOMAIN=.myapp.com
-
-DB_HOST=db.myapp.com
-DB_NAME=myapp_production
-DB_USER=prod_user
-DB_PASS=secure_password
-
-SMTP_HOST=smtp.sendgrid.net
-SMTP_PORT=587
-SMTP_USER=apikey
-SMTP_PASS=your-sendgrid-key
-```
-
-### Environment Variable Reference
-
-| Variable | Description | Used By |
-|----------|-------------|---------|
-| `STATE` | Environment state (`dev` or `prod`) | `Bee::isDev()`, env file selection |
-| `VERSION` | App version (cache busting) | `Template` |
-| `SITE_ADDRESS` | Site domain | `Bee::getBaseDomain()` |
-| `AUTH_DOMAIN` | Cookie domain (with leading `.` for subdomains) | `AuthSlave` (when `globalAuth=true`) |
-| `DB_HOST` | Database server | `DataSlave` |
-| `DB_NAME` | Database name | `DataSlave` |
-| `DB_USER` | Database username | `DataSlave` |
-| `DB_PASS` | Database password | `DataSlave` |
-| `SMTP_HOST` | SMTP server | `MailSlave` |
-| `SMTP_PORT` | SMTP port | `MailSlave` |
-| `SMTP_USER` | SMTP username | `MailSlave` |
-| `SMTP_PASS` | SMTP password | `MailSlave` |
-
-### Loading Order
-
-```php
-// In Server::preload()
-1. Load config/env/.env (provides STATE)
-2. If STATE === "dev": Load config/env/.env.dev
-   Else: Load config/env/.env.prod
-```
+| `RateLimitExceededException` | 429 JSON | 429 response with `Retry-After` header |
+| `SecurityVulnerabilityException` | 500 JSON | 500 response (SQL injection detected) |
 
 ---
 
 ## Testing
 
-### Running Tests
-
 ```bash
 cd framework
-composer test
+composer test              # Run all tests
+./vendor/bin/phpunit       # Or directly with PHPUnit
 ```
 
-Or directly with PHPUnit:
-
-```bash
-./vendor/bin/phpunit
-```
-
-### Writing Tests
-
-```php
-<?php
-
-use PHPUnit\Framework\TestCase;
-use FastRaven\Workers\Bee;
-use FastRaven\Components\Data\Collection;
-use FastRaven\Components\Data\Item;
-
-class BeeTest extends TestCase
-{
-    public function testHashPassword(): void
-    {
-        $hash = Bee::hashPassword("password123");
-        $this->assertTrue(password_verify("password123", $hash));
-    }
-
-    public function testNormalizePath(): void
-    {
-        $this->assertEquals("path/to/file", Bee::normalizePath("/path/to/file/"));
-        $this->assertEquals("etc/passwd", Bee::normalizePath("../../../etc/passwd"));
-    }
-}
-
-class CollectionTest extends TestCase
-{
-    public function testCollectionOperations(): void
-    {
-        $collection = Collection::new([
-            Item::new("key1", "value1"),
-            Item::new("key2", "value2")
-        ]);
-
-        $this->assertEquals("value1", $collection->get("key1")->getValue());
-        $this->assertEquals(["key1", "key2"], $collection->getAllKeys());
-        $this->assertEquals(["value1", "value2"], $collection->getAllValues());
-    }
-}
-```
+Tests are located in `framework/tests/`. See existing tests for patterns using PHPUnit, `Collection`, `Item`, and `Bee` utilities.
 
 ---
 

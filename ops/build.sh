@@ -289,6 +289,9 @@ AUTH_DOMAIN=.fastraven.loc
 
 DB_HOST=localhost
 
+DB_USE_SSL=false
+DB_SSL_CA=/path/to/ca.pem
+
 DB_NAME=test
 DB_USER=raven
 DB_PASS=secret
@@ -305,6 +308,9 @@ SITE_ADDRESS=fastraven.loc
 AUTH_DOMAIN=.fastraven.loc
 
 DB_HOST=localhost
+
+DB_USE_SSL=false
+DB_SSL_CA=/path/to/ca.pem
 
 DB_NAME=test
 DB_USER=raven
@@ -329,6 +335,9 @@ AUTH_DOMAIN=.fastraven.loc
 
 DB_HOST=localhost
 
+DB_USE_SSL=false
+DB_SSL_CA=/path/to/ca.pem
+
 DB_NAME=test
 DB_USER=raven
 DB_PASS=secret
@@ -345,6 +354,9 @@ SITE_ADDRESS=fastraven.loc
 AUTH_DOMAIN=.fastraven.loc
 
 DB_HOST=localhost
+
+DB_USE_SSL=false
+DB_SSL_CA=/path/to/ca.pem
 
 DB_NAME=test
 DB_USER=raven

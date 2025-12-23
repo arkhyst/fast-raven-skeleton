@@ -300,8 +300,9 @@ $config->configurePrivacy(
 
 // Security settings
 $config->configureSecurity(
-    100,                // Rate limit per minute (default: 0 = disabled)
-    256                 // Max input length in KB (default: 0 = disabled)
+    100,                // Rate limit per minute (default: -1 = disabled)
+    256,                // Max input length in KB (default: -1 = disabled)
+    5120                // Max file upload size in KB (default: -1 = disabled)
 );
 
 // Cache settings (for file-based cache)
@@ -322,7 +323,7 @@ return $config;
 | `configureNotFoundRedirects(path)` | `string` | 404 redirect path |
 | `configureUnauthorizedRedirects(...)` | `string`, `string` | 401 redirect path and subdomain |
 | `configurePrivacy(...)` | `bool`, `bool` | Logging and origin tracking |
-| `configureSecurity(...)` | `int`, `int` | Rate limiting and input size |
+| `configureSecurity(...)` | `int`, `int`, `int` | Rate limiting, input size, file upload size |
 | `configureCache(...)` | `int`, `int` | Cache GC probability and power |
 
 #### Getters
@@ -691,7 +692,42 @@ RAW ─────────────────────── No cha
 | `getRemoteAddress()` | `string` | Remote IP address |
 | `get(key, sanitizeType?)` | `mixed` | Get query string parameter with optional sanitization |
 | `post(key, sanitizeType?)` | `mixed` | Get body data with optional sanitization |
+| `file(name)` | `?string` | Get uploaded file's temporary path by field name |
 | `getDataItem(key)` | `mixed` | **Deprecated** - Use `post()` instead |
+
+#### File Uploads
+
+Handle file uploads using the `file()` method:
+
+```php
+use FastRaven\Workers\Bee;
+use FastRaven\Workers\StorageWorker;
+
+return function(Request $request): Response {
+    $tmpFile = $request->file("avatar");  // Returns temp path or null
+    
+    if (!$tmpFile) {
+        return Response::new(false, 400, "No file uploaded");
+    }
+    
+    // Validate MIME type using Bee
+    $allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!in_array(Bee::getFileMimeType($tmpFile), $allowedTypes)) {
+        return Response::new(false, 400, "Invalid file type");
+    }
+    
+    // Move to storage/uploads/
+    $userId = AuthWorker::getAuthorizedUserId();
+    if (StorageWorker::uploadFile($tmpFile, "avatars/user_{$userId}.jpg")) {
+        return Response::new(true, 200, "Avatar uploaded");
+    }
+    
+    return Response::new(false, 500, "Upload failed");
+};
+```
+
+> [!NOTE]
+> The `file()` method extracts only the `tmp_name` from `$_FILES`. File size is validated by the framework if configured via `configureSecurity()`.
 
 ---
 
@@ -1296,6 +1332,103 @@ SMTP_PORT=587
 SMTP_USER=noreply@example.com
 SMTP_PASS=your-smtp-password
 ```
+
+---
+
+### Bee
+
+Utility worker with environment, security, and file helpers. Located at `src/Workers/Bee.php`.
+
+```php
+use FastRaven\Workers\Bee;
+
+// Environment variables
+$host = Bee::env("DB_HOST", "localhost");     // Get env var with default
+$isDev = Bee::isDev();                        // Check if STATE=dev
+
+// Domain utilities
+$baseDomain = Bee::getBaseDomain();           // "example.com" from SITE_ADDRESS
+$fullDomain = Bee::getBuiltDomain("api");     // "api.example.com"
+
+// Password hashing (Argon2ID)
+$hash = Bee::hashPassword("secret123");
+$valid = password_verify("secret123", $hash);
+
+// Path normalization (security: removes .., null bytes, normalizes slashes)
+$safe = Bee::normalizePath("/path/../to//file");  // "path/to/file"
+
+// File MIME type detection (uses magic bytes via finfo)
+$mime = Bee::getFileMimeType($tmpFile);       // "image/jpeg", "application/pdf", etc.
+```
+
+#### Method Reference
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `env(key, default?)` | `string` | Get environment variable |
+| `isDev()` | `bool` | Check if running in dev mode |
+| `getBaseDomain()` | `string` | Get base domain from SITE_ADDRESS |
+| `getBuiltDomain(subdomain?)` | `string` | Build full domain with optional subdomain |
+| `hashPassword(password)` | `string` | Hash password with Argon2ID |
+| `normalizePath(path)` | `string` | Sanitize path (removes `..`, null bytes) |
+| `getFileMimeType(file)` | `string` | Get MIME type using magic bytes |
+
+---
+
+### StorageWorker
+
+File storage and caching operations. Located at `src/Workers/StorageWorker.php`.
+
+#### File Uploads
+
+```php
+use FastRaven\Workers\StorageWorker;
+
+// Upload file from $_FILES to storage/uploads/
+$tmpFile = $request->file("document");
+$success = StorageWorker::uploadFile($tmpFile, "documents/report.pdf");
+
+// Read file from storage/uploads/
+$content = StorageWorker::readFileContents("documents/report.pdf");
+
+// Delete file from storage/uploads/
+$success = StorageWorker::deleteFile("documents/report.pdf");
+```
+
+#### File-based Caching
+
+```php
+// Set cache with TTL (seconds)
+StorageWorker::setCache("user_123_profile", ["name" => "John"], 3600);
+
+// Get cache (returns null if expired or not found)
+$data = StorageWorker::getCache("user_123_profile");
+
+// Delete cache
+StorageWorker::deleteCache("user_123_profile");
+
+// Increment counter (creates with value if doesn't exist)
+StorageWorker::incrementCache("page_views", 1);
+
+// Clear all cache
+StorageWorker::clearCache();
+```
+
+> [!NOTE]
+> Cache files are stored in `storage/cache/` as serialized PHP files. The garbage collector (configured via `configureCache()`) automatically removes expired entries.
+
+#### Method Reference
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `uploadFile(tmpFile, destPath)` | `bool` | Move uploaded file to storage/uploads |
+| `readFileContents(path)` | `?string` | Read file content from storage/uploads |
+| `deleteFile(path)` | `bool` | Delete file from storage/uploads |
+| `setCache(key, value, ttl)` | `bool` | Store value in file cache |
+| `getCache(key)` | `mixed` | Retrieve cached value or null |
+| `deleteCache(key)` | `bool` | Remove cached value |
+| `incrementCache(key, amount)` | `bool` | Increment numeric cache value |
+| `clearCache()` | `bool` | Clear all cache files |
 
 ---
 

@@ -202,6 +202,9 @@ $config->configureUnauthorizedRedirects("/", "");
 // Define whether to register logs or restrict what data to register.
 $config->configurePrivacy(true, true);
 
+// Configure rate-limiting and input/file size limits.
+$config->configureSecurity(200, 256, 5120);
+
 // File-based cache settings. Set gcProbability to 0 to disable framework GC.
 $config->configureCache(1, 50);
 

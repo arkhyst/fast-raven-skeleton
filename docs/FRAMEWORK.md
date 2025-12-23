@@ -256,8 +256,14 @@ $config->configurePrivacy(
 
 // Security settings
 $config->configureSecurity(
-    100,                // Rate limit per minute (default: 100)
-    256 * 1024          // Max input length in bytes (default: 256KB)
+    100,                // Rate limit per minute (default: 0 = disabled)
+    256                 // Max input length in KB (default: 0 = disabled)
+);
+
+// Cache settings (for file-based cache)
+$config->configureCache(
+    1,                  // GC probability percentage (default: 0 = disabled)
+    50                  // Files to check per GC run (default: 50)
 );
 
 return $config;
@@ -273,6 +279,7 @@ return $config;
 | `configureUnauthorizedRedirects(...)` | `string`, `string` | 401 redirect path and subdomain |
 | `configurePrivacy(...)` | `bool`, `bool` | Logging and origin tracking |
 | `configureSecurity(...)` | `int`, `int` | Rate limiting and input size |
+| `configureCache(...)` | `int`, `int` | Cache GC probability and power |
 
 #### Getters
 
@@ -290,6 +297,8 @@ return $config;
 | `isPrivacyRegisterOrigin()` | `bool` | IP logging enabled |
 | `getSecurityRateLimit()` | `int` | Rate limit per minute |
 | `getSecurityInputLengthLimit()` | `int` | Max input bytes |
+| `getCacheFileGCProbability()` | `int` | GC trigger probability (0-100) |
+| `getCacheFileGCPower()` | `int` | Files checked per GC run |
 
 ---
 

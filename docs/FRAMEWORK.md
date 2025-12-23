@@ -220,6 +220,50 @@ $server->run();
 | `getApiRouter(): Router` | Loads and returns `config/router/api.php` |
 | `createInstance(): Server` | Creates a new Server instance |
 
+#### Filters
+
+Filters are callbacks executed between `Kernel::open()` and `Kernel::process()`. Use them for custom request validation, maintenance mode, IP blocking, or any pre-processing logic.
+
+```php
+// Add filter after configure()
+$server->addFilter(function(Request $request): bool {
+    // Return true to continue, false to deny
+    return true;
+});
+
+$server->run();
+```
+
+**Filter Examples:**
+
+```php
+use FastRaven\Components\Http\Request;
+use FastRaven\Exceptions\FilterDeniedException;
+
+// Maintenance mode
+$server->addFilter(function(Request $request): bool {
+    if (Bee::env("MAINTENANCE", "false") === "true") {
+        return false; // Returns 400 with default message
+    }
+    return true;
+});
+
+// Custom response with FilterDeniedException
+$server->addFilter(function(Request $request): bool {
+    if (in_array($request->getRemoteAddress(), $blockedIPs)) {
+        throw new FilterDeniedException(403, "Access denied.");
+    }
+    return true;
+});
+```
+
+| Method | Description |
+|--------|-------------|
+| `addFilter(callable $filter)` | Adds a filter. Signature: `func(Request): bool` |
+
+> [!NOTE]
+> Filters run in the order they are added. If any filter returns `false` or throws `FilterDeniedException`, the request is denied.
+
 ---
 
 ### Config

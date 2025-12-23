@@ -10,9 +10,3 @@ $apiRouter = Router::endpoints([
 ]);
 
 return $apiRouter;
-
-// If router gets to big, use Router::files() instead and refer to config/router folder.
-// $apiRouter = Router::files(Collection::new([
-//     Item::new("/v1", "main.php"),
-//     Item::new("/v2", "new_version/main.php"),
-// ]));

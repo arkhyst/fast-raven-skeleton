@@ -15,9 +15,3 @@ $viewRouter = Router::endpoints([
 ]);
 
 return $viewRouter;
-
-// If router gets to big, use Router::files() instead and refer to config/router folder.
-// $viewRouter = Router::files(Collection::new([
-//     Item::new("/", "main.php"),
-//     Item::new("/admin", "admin.php"),
-// ]));

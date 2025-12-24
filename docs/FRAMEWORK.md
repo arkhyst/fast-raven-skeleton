@@ -72,7 +72,7 @@ graph LR
         LS[LogSlave]
         MS[MailSlave]
         VS[ValidationSlave]
-        RS[RouterSlave]
+        SS[StorageSlave]
     end
     
     subgraph "Core"
@@ -81,7 +81,7 @@ graph LR
     end
     
     S --> K
-    K --> AS & DS & HS & LS & MS & VS & RS
+    K --> AS & DS & HS & LS & MS & VS & SS
     AW -.-> AS
     DW -.-> DS
     HW -.-> HS
@@ -117,7 +117,7 @@ framework/
 │   │   └── EndpointFileNotFoundException.php   # 500 - File missing
 │   ├── Internal/             # Internal components (not for direct use)
 │   │   ├── Core/             # Kernel
-│   │   ├── Slave/            # AuthSlave, DataSlave, HeaderSlave, LogSlave, MailSlave, RouterSlave, ValidationSlave
+│   │   ├── Slave/            # AuthSlave, DataSlave, HeaderSlave, LogSlave, MailSlave, StorageSlave, ValidationSlave
 │   │   ├── Stash/            # LogStash
 │   │   └── Template/         # main.php, lib.js, style.scss (compiled versions included)
 │   ├── Workers/              # Public API for developers
@@ -190,22 +190,19 @@ The main entry point for the framework. Located at `src/Server.php`.
 ```php
 use FastRaven\Server;
 
-// 1. Preload environment - MUST be called first with __DIR__
-Server::preload(__DIR__);
+// 1. Initialize server (loads .env, defines SITE_PATH) - MUST use __DIR__
+$server = Server::initialize(__DIR__);
 
-// 2. Load configurations using helper methods
-$config = Server::getConfiguration();       // Loads config/config.php
-$template = Server::getTemplate();          // Loads config/template.php
-$viewRouter = Server::getViewRouter();      // Loads config/router/views.php
-$apiRouter = Server::getApiRouter();        // Loads config/router/api.php
+// 2. Configure server with all components
+$server->configure(
+    Server::getConfiguration(),       // Loads config/config.php
+    Server::getTemplate(),            // Loads config/template.php
+    Server::getViewRouter(),          // Loads config/router/views.php
+    Server::getApiRouter(),           // Loads config/router/api.php
+    Server::getCdnRouter()            // Loads config/router/cdn.php
+);
 
-// 3. Create server instance
-$server = Server::createInstance();
-
-// 4. Configure server with all components
-$server->configure($config, $template, $viewRouter, $apiRouter);
-
-// 5. Run the server (processes request and outputs response)
+// 3. Run the server (processes request and outputs response)
 $server->run();
 ```
 
@@ -213,12 +210,12 @@ $server->run();
 
 | Method | Description |
 |--------|-------------|
-| `preload(string $sitePath)` | Loads `.env` files and defines `SITE_PATH` constant. **Must use `__DIR__`**. |
+| `initialize(string $sitePath): Server` | Loads `.env` files, defines `SITE_PATH`, returns Server instance. **Must use `__DIR__`**. |
 | `getConfiguration(): Config` | Loads and returns `config/config.php` |
 | `getTemplate(): Template` | Loads and returns `config/template.php` |
 | `getViewRouter(): Router` | Loads and returns `config/router/views.php` |
 | `getApiRouter(): Router` | Loads and returns `config/router/api.php` |
-| `createInstance(): Server` | Creates a new Server instance |
+| `getCdnRouter(): Router` | Loads and returns `config/router/cdn.php` |
 
 #### Filters
 
@@ -283,12 +280,10 @@ $config->configureAuthorization(
     false               // Global auth across subdomains (uses AUTH_DOMAIN env var)
 );
 
-// Redirect settings for 404 errors
-$config->configureNotFoundRedirects("/404");
-
-// Redirect settings for unauthorized access
-$config->configureUnauthorizedRedirects(
-    "/login",           // Path to redirect unauthorized users
+// Redirect settings (combined 404 and unauthorized)
+$config->configureRedirects(
+    "/404",             // Path to redirect not found requests to
+    "/login",           // Path to redirect unauthorized requests to
     "auth"              // Optional subdomain (e.g., auth.example.com)
 );
 
@@ -298,9 +293,15 @@ $config->configurePrivacy(
     true                // Register origin IP (default: true)
 );
 
-// Security settings
-$config->configureSecurity(
-    100,                // Rate limit per minute (default: -1 = disabled)
+// Rate limit settings (requests per minute, -1 = disabled)
+$config->configureRateLimits(
+    100,                // VIEW rate limit per minute
+    50,                 // API rate limit per minute
+    200                 // CDN rate limit per minute
+);
+
+// Length limit settings (in kilobytes)
+$config->configureLengthLimits(
     256,                // Max input length in KB (default: -1 = disabled)
     5120                // Max file upload size in KB (default: -1 = disabled)
 );
@@ -320,10 +321,10 @@ return $config;
 |--------|------------|-------------|
 | `new(siteName, restricted)` | `string`, `bool` | Creates new Config instance |
 | `configureAuthorization(...)` | `string`, `int`, `bool` | Session cookie settings |
-| `configureNotFoundRedirects(path)` | `string` | 404 redirect path |
-| `configureUnauthorizedRedirects(...)` | `string`, `string` | 401 redirect path and subdomain |
+| `configureRedirects(...)` | `string`, `string`, `string` | 404 path, 401 path, and subdomain |
 | `configurePrivacy(...)` | `bool`, `bool` | Logging and origin tracking |
-| `configureSecurity(...)` | `int`, `int`, `int` | Rate limiting, input size, file upload size |
+| `configureRateLimits(...)` | `int`, `int`, `int` | VIEW, API, CDN rate limits per minute |
+| `configureLengthLimits(...)` | `int`, `int` | Input size KB, file upload size KB |
 | `configureCache(...)` | `int`, `int` | Cache GC probability and power |
 
 #### Getters
@@ -340,8 +341,9 @@ return $config;
 | `getDefaultUnauthorizedSubdomainRedirect()` | `string` | 401 redirect subdomain |
 | `isPrivacyRegisterLogs()` | `bool` | Logging enabled |
 | `isPrivacyRegisterOrigin()` | `bool` | IP logging enabled |
-| `getSecurityRateLimit()` | `int` | Rate limit per minute |
-| `getSecurityInputLengthLimit()` | `int` | Max input bytes |
+| `getRateLimit(MiddlewareType)` | `int` | Rate limit for specified type |
+| `getLengthLimitInput()` | `int` | Max input bytes |
+| `getLengthLimitFileUpload()` | `int` | Max file upload bytes |
 | `getCacheFileGCProbability()` | `int` | GC trigger probability (0-100) |
 | `getCacheFileGCPower()` | `int` | Files checked per GC run |
 
@@ -529,34 +531,26 @@ $defaultTemplate->merge($pageTemplate);
 
 ### Router
 
-Defines routes for views and APIs. Located at `src/Components/Routing/Router.php`.
+Defines routes for views, APIs, and CDN. Located at `src/Components/Routing/Router.php`.
 
 ```php
 use FastRaven\Components\Routing\Router;
 use FastRaven\Components\Routing\Endpoint;
-use FastRaven\Components\Data\Collection;
-use FastRaven\Components\Data\Item;
 
-// Method 1: Direct endpoint definitions (recommended for small projects)
-$viewRouter = Router::endpoints([
+$viewRouter = Router::views([
     Endpoint::view(false, "/", "main.html"),
     Endpoint::view(true, "/dashboard", "dashboard.html"),
 ]);
 
-$apiRouter = Router::endpoints([
+$apiRouter = Router::api([
     Endpoint::api(false, "GET", "/health", "Health.php"),
     Endpoint::api(true, "POST", "/user/update", "user/Update.php"),
 ]);
 
-// Method 2: File-based routing (for large projects)
-$viewRouter = Router::files(Collection::new([
-    Item::new("/", "main.php"),           // Loads config/router/main.php for / paths
-    Item::new("/admin", "admin.php"),     // Loads config/router/admin.php for /admin paths
-]));
+$cdnRouter = Router::cdn([
+    Endpoint::cdn(false, "GET", "/favicon", "Favicon.php"),
+]);
 ```
-
-> [!TIP]
-> Use `Router::endpoints()` for small to medium projects. Switch to `Router::files()` when your route definitions become too large for a single file.
 
 ---
 
@@ -604,7 +598,51 @@ Endpoint::api(false, "POST", "/auth/login", "auth/Login.php", false, 5);  // Wit
 ```
 
 > [!IMPORTANT]
-> API paths are automatically prefixed with `/api/`. So `Endpoint::api(..., "/user/profile", ...)` matches `/api/user/profile`.
+> API paths are automatically prefixed with `/api/`. So `Endpoint::api(..., "/user/profile", ...)` matches `/api/user/profile/`.
+
+#### CDN Endpoint
+
+For static file serving. Files are returned with proper Content-Type headers.
+
+```php
+use FastRaven\Components\Routing\Endpoint;
+
+Endpoint::cdn(
+    $restricted,           // bool: Requires authentication?
+    $method,               // string: HTTP method (usually "GET")
+    $path,                 // string: URL path relative to /cdn/
+    $fileName,             // string: File in src/cdn/
+    $limitPerMinute        // int: Rate limit per minute (default: -1)
+);
+
+// Examples:
+Endpoint::cdn(false, "GET", "/images/logo", "images/logo.php");       // Public CDN endpoint
+Endpoint::cdn(true, "GET", "/files/report", "files/report.php");      // Protected file download
+```
+
+> [!NOTE]
+> CDN endpoint files should return `Response::file(true, "path/to/file.ext")` pointing to files in `storage/uploads/`.
+
+#### Router Endpoint (Nested Routers)
+
+For organizing routes into sub-routers:
+
+```php
+use FastRaven\Components\Routing\Endpoint;
+use FastRaven\Components\Types\MiddlewareType;
+
+Endpoint::router(
+    $type,                 // MiddlewareType: VIEW, API, or CDN
+    $restricted,           // bool: Requires authentication?
+    $path,                 // string: Path prefix for nested routes
+    $routerFilePath,       // string: Router file in config/router/
+    $limitPerMinute        // int: Rate limit per minute (default: -1)
+);
+
+// Examples:
+Endpoint::router(MiddlewareType::API, false, "/admin", "admin.php");  // /api/admin/* routes
+Endpoint::router(MiddlewareType::VIEW, true, "/dashboard", "dashboard.php"); // /dashboard/* routes
+```
 
 #### Authentication Matrix
 
@@ -634,13 +672,14 @@ Represents an HTTP request. Located at `src/Components/Http/Request.php`. Availa
 
 ```php
 // In an API endpoint file (src/api/example.php)
-use FastRaven\Components\Http\SanitizeType;
+use FastRaven\Components\Types\SanitizeType;
+use FastRaven\Components\Types\MiddlewareType;
 
 return function(Request $request): Response {
     $method = $request->getMethod();           // "GET", "POST", "PUT", "DELETE", "PATCH"
-    $path = $request->getPath();               // "/api/users"
-    $complexPath = $request->getComplexPath(); // "/api/users#POST" (path + method)
-    $isApi = $request->isApi();                // true (checks if path starts with /api/)
+    $path = $request->getPath();               // "/api/users/"
+    $complexPath = $request->getComplexPath(); // "/api/users/#POST" (path + method)
+    $type = $request->getType();               // MiddlewareType::API
     $requestId = $request->getInternalID();    // Unique 8-char hex ID (e.g., "a1b2c3d4")
     $remoteAddress = $request->getRemoteAddress();   // "192.168.1.1"
     
@@ -656,6 +695,17 @@ return function(Request $request): Response {
     return Response::new(true, 200, "Success");
 };
 ```
+
+#### MiddlewareType Enum
+
+The type of request is determined by the URL path prefix:
+
+| Type | Path Prefix | Use Case |
+|------|-------------|----------|
+| `VIEW` | Any non-API/CDN | HTML page rendering |
+| `API` | `/api/` | JSON API endpoints |
+| `CDN` | `/cdn/` | Static file serving |
+| `ROUTER` | N/A | Internal router endpoints |
 
 #### SanitizeType Enum
 
@@ -685,15 +735,14 @@ RAW ─────────────────────── No cha
 | Method | Return Type | Description |
 |--------|-------------|-------------|
 | `getMethod()` | `string` | HTTP method (uppercase) |
-| `getPath()` | `string` | Request path |
-| `getComplexPath()` | `string` | Path + method (e.g., `/api/users#POST`) |
-| `isApi()` | `bool` | True if path starts with `/api/` |
+| `getPath()` | `string` | Request path (with trailing `/`) |
+| `getComplexPath()` | `string` | Path + method (e.g., `/api/users/#POST`) |
+| `getType()` | `MiddlewareType` | Request type (VIEW, API, CDN) |
 | `getInternalID()` | `string` | Unique request identifier |
 | `getRemoteAddress()` | `string` | Remote IP address |
 | `get(key, sanitizeType?)` | `mixed` | Get query string parameter with optional sanitization |
 | `post(key, sanitizeType?)` | `mixed` | Get body data with optional sanitization |
 | `file(name)` | `?string` | Get uploaded file's temporary path by field name |
-| `getDataItem(key)` | `mixed` | **Deprecated** - Use `post()` instead |
 
 #### File Uploads
 
@@ -727,7 +776,7 @@ return function(Request $request): Response {
 ```
 
 > [!NOTE]
-> The `file()` method extracts only the `tmp_name` from `$_FILES`. File size is validated by the framework if configured via `configureSecurity()`.
+> The `file()` method extracts only the `tmp_name` from `$_FILES`. File size is validated by the framework if configured via `configureLengthLimits()`.
 
 ---
 
@@ -752,6 +801,21 @@ $response->setBody("Updated message", ["key" => "value"]);
 return $response;
 ```
 
+#### File Response (CDN)
+
+For serving files in CDN endpoints:
+
+```php
+// In a CDN endpoint file (src/cdn/example.php)
+return function(Request $request): Response {
+    $fileName = $request->get('file', SanitizeType::ONLY_ALPHA);
+    return Response::file(true, "images/{$fileName}.png");  // Path relative to storage/uploads/
+};
+```
+
+> [!IMPORTANT]
+> The path in `Response::file()` is relative to `storage/uploads/`. The Kernel validates file existence and sets the correct Content-Type header.
+
 #### JSON Output Format
 
 API responses are automatically serialized to JSON:
@@ -766,15 +830,19 @@ API responses are automatically serialized to JSON:
 
 #### DataType Enum
 
-The framework defines response content types:
+Located at `src/Components/Types/DataType.php`. Comprehensive MIME type definitions:
 
-```php
-enum DataType: string {
-    case JSON = "application/json";  // Used for API requests
-    case HTML = "text/html";         // Used for view requests
-    case TEXT = "text";              // Available but not auto-used
-}
-```
+| Category | Types |
+|----------|-------|
+| **Web** | HTML, CSS, JS, JSON, XML, TEXT |
+| **Data** | CSV, YAML, TOML, FORM, MULTIPART |
+| **Images** | PNG, JPG, GIF, WEBP, SVG, ICO, AVIF, BMP, TIFF |
+| **Audio** | MP3, OGG_AUDIO, WAV, FLAC, AAC, WEBM_AUDIO, M4A |
+| **Video** | MP4, WEBM, OGG_VIDEO, AVI, MOV, MKV, MPEG |
+| **Documents** | PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, ODT, ODS, RTF, EPUB |
+| **Fonts** | WOFF, WOFF2, TTF, OTF, EOT |
+| **Archives** | ZIP, GZIP, TAR, RAR, SEVENZ, BZIP2 |
+| **Misc** | BINARY, ICS, WASM, MANIFEST |
 
 ---
 
@@ -1711,7 +1779,7 @@ $debug = true;
 ### Common Issues
 
 **1. 500 Error on Startup**
-- Ensure `Server::preload(__DIR__)` is called before any configuration
+- Ensure `Server::initialize(__DIR__)` is called properly
 - Check that all config files return the correct object types
 - Verify `.env` files exist and are readable
 

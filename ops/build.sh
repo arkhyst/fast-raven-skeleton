@@ -82,7 +82,7 @@ if [ -n "$1" ]; then
     mkdir -p "$SITE_PATH/config/env"
     mkdir -p "$SITE_PATH/config/router"
     mkdir -p "$SITE_PATH/src/api"
-    mkdir -p "$SITE_PATH/src/_shared"
+    mkdir -p "$SITE_PATH/src/cdn"
     mkdir -p "$SITE_PATH/src/web/views/pages"
     mkdir -p "$SITE_PATH/src/web/views/fragments"
     mkdir -p "$SITE_PATH/src/web/views/mails"
@@ -102,7 +102,6 @@ if [ -n "$1" ]; then
     # CREATE .gitkeep FILES
     #==========================================================================
         
-    touch "$SITE_PATH/src/_shared/.gitkeep"
     touch "$SITE_PATH/src/web/assets/fonts/.gitkeep"
     touch "$SITE_PATH/src/web/assets/img/.gitkeep"
     touch "$SITE_PATH/public/assets/fonts/.gitkeep"
@@ -151,27 +150,21 @@ EOF
 <?php
 
 declare(strict_types=1);
-require __DIR__ . "/../vendor/autoload.php";
+require __DIR__ . "/../../vendor/autoload.php";
 
 use FastRaven\Server;
 
-// sitePath SHOULD ALWAYS BE __DIR__ unless you know what you are doing. Leave empty for the same value as preload.
-
-// Environment preload.
-Server::preload(__DIR__);
-
-
-// Retrieve configuration, template and routers.
-$config = Server::getConfiguration();
-$template = Server::getTemplate();
-$viewRouter = Server::getViewRouter();
-$apiRouter = Server::getApiRouter();
-
-// Server initialization.
-$server = Server::createInstance();
+// Server initialization. sitePath SHOULD ALWAYS BE __DIR__ unless you know what you are doing.
+$server = Server::initialize(__DIR__);
 
 // Server configuration.
-$server->configure($config, $template, $viewRouter, $apiRouter);
+$server->configure(
+    Server::getConfiguration(),
+    Server::getTemplate(),
+    Server::getViewRouter(),
+    Server::getApiRouter(),
+    Server::getCdnRouter()
+);
 
 // This is where the magic happens.
 $server->run();
@@ -184,26 +177,26 @@ EOF
     # config.php
     cat > "$SITE_PATH/config/config.php" <<'EOF'
 <?php
-use FastRaven\Components\Core\Config;
-use FastRaven\Workers\Bee;
 
-// Main Configuration
+use FastRaven\Components\Core\Config;
+
+// Main Configuration. siteName is not the subdomain.
 $config = Config::new("${SITE_NAME}", false);
 
-// Cookie Session Configuration
+// Cookie Session Configuration.
 $config->configureAuthorization("YOURSESSIONNAME", 7, false);
 
-// Where to redirect if route not found.
-$config->configureNotFoundRedirects("/");
-
-// Where to redirect if not authorized. Leave subdomain empty to use the main domain. DO NOT USE a restricted site.
-$config->configureUnauthorizedRedirects("/", "");
+// Redirect settings: notFound path, unauthorized path, subdomain (empty = main domain)
+$config->configureRedirects("/", "/", "");
 
 // Define whether to register logs or restrict what data to register.
 $config->configurePrivacy(true, true);
 
-// Configure rate-limiting and input/file size limits.
-$config->configureSecurity(200, 256, 5120);
+// Configure rate-limiting per middleware type (VIEW, API, CDN). -1 = disabled.
+$config->configureRateLimits(200, 200, 200);
+
+// Configure input/file size limits in KB. -1 = disabled.
+$config->configureLengthLimits(256, 5120);
 
 // File-based cache settings. Set gcProbability to 0 to disable framework GC.
 $config->configureCache(1, 50);
@@ -240,7 +233,7 @@ use FastRaven\Components\Data\Collection;
 use FastRaven\Components\Data\Item;
 
 // View Router configuration. You can append a template to each view.
-$viewRouter = Router::endpoints([
+$viewRouter = Router::views([
     Endpoint::view(false, "/", "main.html"),
     Endpoint::view(false, "/ping", "ping.html", Template::flex(title: "Ping test", autofill: Collection::new([
         Item::new("#api-result-span", "/api/ping")
@@ -248,7 +241,6 @@ $viewRouter = Router::endpoints([
 ]);
 
 return $viewRouter;
-
 EOF
     
     # router/api.php
@@ -259,13 +251,27 @@ use FastRaven\Components\Routing\Endpoint;
 use FastRaven\Components\Routing\Router;
 
 // API Router configuration. /api/ prefix is automatically added.
-$apiRouter = Router::endpoints([
+$apiRouter = Router::api([
     Endpoint::api(false, "GET","/health", "Health.php"),
     Endpoint::api(false, "GET","/ping", "Pong.php")
 ]);
 
 return $apiRouter;
+EOF
+    
+    # router/cdn.php
+    cat > "$SITE_PATH/config/router/cdn.php" <<'EOF'
+<?php
 
+use FastRaven\Components\Routing\Endpoint;
+use FastRaven\Components\Routing\Router;
+
+// CDN Router configuration. /cdn/ prefix is automatically added.
+$cdnRouter = Router::cdn([
+    Endpoint::cdn(false, "GET","/favicon", "Favicon.php"),
+]);
+
+return $cdnRouter;
 EOF
     
     #==========================================================================
@@ -427,6 +433,21 @@ use FastRaven\Components\Http\Response;
 
 return function(Request $request): Response {
     return Response::new(true, 200, "This should give a little information.", "PONG");
+};
+EOF
+    
+    #==========================================================================
+    # CREATE DEFAULT CDN ENDPOINT
+    #==========================================================================
+    
+    cat > "$SITE_PATH/src/cdn/Favicon.php" <<'EOF'
+<?php
+
+use FastRaven\Components\Http\Request;
+use FastRaven\Components\Http\Response;
+
+return function(Request $request): Response {
+    return Response::file(true, "fast-raven.png");
 };
 EOF
     

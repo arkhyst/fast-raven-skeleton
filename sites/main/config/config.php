@@ -8,17 +8,17 @@ $config = Config::new("main", false);
 // Cookie Session Configuration.
 $config->configureAuthorization("YOURSESSIONNAME", 7, false);
 
-// Where to redirect if route not found.
-$config->configureNotFoundRedirects("/");
-
-// Where to redirect if not authorized. Leave subdomain empty to use the main domain. DO NOT USE a restricted site.
-$config->configureUnauthorizedRedirects("/", "");
+// Redirect settings: notFound path, unauthorized path, subdomain (empty = main domain)
+$config->configureRedirects("/", "/", "");
 
 // Define whether to register logs or restrict what data to register.
 $config->configurePrivacy(true, true);
 
-// Configure rate-limiting and input/file size limits.
-$config->configureSecurity(200, 256, 5120);
+// Configure rate-limiting per middleware type (VIEW, API, CDN). -1 = disabled.
+$config->configureRateLimits(200, 200, 200);
+
+// Configure input/file size limits in KB. -1 = disabled.
+$config->configureLengthLimits(256, 5120);
 
 // File-based cache settings. Set gcProbability to 0 to disable framework GC.
 $config->configureCache(1, 50);

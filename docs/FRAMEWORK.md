@@ -1492,11 +1492,15 @@ StorageWorker::clearCache();
 | `uploadFile(tmpFile, destPath)` | `bool` | Move uploaded file to storage/uploads |
 | `readFileContents(path)` | `?string` | Read file content from storage/uploads |
 | `deleteFile(path)` | `bool` | Delete file from storage/uploads |
+| `fileExists(path)` | `bool` | Check if file exists in storage/uploads |
+| `getUploadFilePath(path)` | `string` | Get absolute path for storage/uploads file |
 | `setCache(key, value, ttl)` | `bool` | Store value in file cache |
 | `getCache(key)` | `mixed` | Retrieve cached value or null |
 | `deleteCache(key)` | `bool` | Remove cached value |
 | `incrementCache(key, amount)` | `bool` | Increment numeric cache value |
 | `clearCache()` | `bool` | Clear all cache files |
+| `cacheExists(key)` | `bool` | Check if cache key exists |
+| `getCacheFilePath(key)` | `string` | Get absolute path for cache file |
 
 ---
 

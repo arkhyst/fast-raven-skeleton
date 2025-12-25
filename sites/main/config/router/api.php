@@ -3,7 +3,7 @@
 use FastRaven\Components\Routing\Endpoint;
 use FastRaven\Components\Routing\Router;
 
-use FastRaven\Components\Types\MiddlewareType;
+use FastRaven\Types\MiddlewareType;
 
 // API Router configuration. /api/ prefix is automatically added.
 $apiRouter = Router::new(MiddlewareType::API)

@@ -233,7 +233,7 @@ use FastRaven\Components\Routing\Router;
 use FastRaven\Components\Data\Collection;
 use FastRaven\Components\Data\Item;
 
-use FastRaven\Components\Types\MiddlewareType;
+use FastRaven\Types\MiddlewareType;
 
 // View Router configuration. You can append a template to each view.
 $viewRouter = Router::new(MiddlewareType::VIEW)
@@ -252,7 +252,7 @@ EOF
 use FastRaven\Components\Routing\Endpoint;
 use FastRaven\Components\Routing\Router;
 
-use FastRaven\Components\Types\MiddlewareType;
+use FastRaven\Types\MiddlewareType;
 
 // API Router configuration. /api/ prefix is automatically added.
 $apiRouter = Router::new(MiddlewareType::API)
@@ -269,7 +269,7 @@ EOF
 use FastRaven\Components\Routing\Endpoint;
 use FastRaven\Components\Routing\Router;
 
-use FastRaven\Components\Types\MiddlewareType;
+use FastRaven\Types\MiddlewareType;
 
 // CDN Router configuration. /cdn/ prefix is automatically added.
 $cdnRouter = Router::new(MiddlewareType::CDN)

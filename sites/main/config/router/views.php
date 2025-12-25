@@ -7,7 +7,7 @@ use FastRaven\Components\Routing\Router;
 use FastRaven\Components\Data\Collection;
 use FastRaven\Components\Data\Item;
 
-use FastRaven\Components\Types\MiddlewareType;
+use FastRaven\Types\MiddlewareType;
 
 // View Router configuration. You can append a template to each view.
 $viewRouter = Router::new(MiddlewareType::VIEW)

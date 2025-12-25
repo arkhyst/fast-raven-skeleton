@@ -546,7 +546,7 @@ Routes are stored in a hash map for O(1) lookup performance.
 ```php
 use FastRaven\Components\Routing\Router;
 use FastRaven\Components\Routing\Endpoint;
-use FastRaven\Components\Types\MiddlewareType;
+use FastRaven\Types\MiddlewareType;
 
 $viewRouter = Router::new(MiddlewareType::VIEW)
     ->add(Endpoint::view(false, "/", "main.html"))
@@ -647,7 +647,7 @@ For organizing routes into sub-routers:
 
 ```php
 use FastRaven\Components\Routing\Endpoint;
-use FastRaven\Components\Types\MiddlewareType;
+use FastRaven\Types\MiddlewareType;
 
 Endpoint::router(
     $type,                 // MiddlewareType: VIEW, API, or CDN
@@ -690,8 +690,8 @@ Represents an HTTP request. Located at `src/Components/Http/Request.php`. Availa
 
 ```php
 // In an API endpoint file (src/api/example.php)
-use FastRaven\Components\Types\SanitizeType;
-use FastRaven\Components\Types\MiddlewareType;
+use FastRaven\Types\SanitizeType;
+use FastRaven\Types\MiddlewareType;
 
 return function(Request $request): Response {
     $method = $request->getMethod();           // "GET", "POST", "PUT", "DELETE", "PATCH"

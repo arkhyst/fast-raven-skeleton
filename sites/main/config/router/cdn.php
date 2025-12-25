@@ -3,7 +3,7 @@
 use FastRaven\Components\Routing\Endpoint;
 use FastRaven\Components\Routing\Router;
 
-use FastRaven\Components\Types\MiddlewareType;
+use FastRaven\Types\MiddlewareType;
 
 // CDN Router configuration. /cdn/ prefix is automatically added.
 $cdnRouter = Router::new(MiddlewareType::CDN)

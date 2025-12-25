@@ -394,13 +394,14 @@ config/env/
 | `DB_NAME` | Database name | - |
 | `DB_USER` | Database username | - |
 | `DB_PASS` | Database password | - |
-| `DB_USE_SSL` | Enable SSL/TLS for MySQL connection | `false` |
+| `DB_PERSISTENT` | Enable persistent PDO connections | `true` |
+| `DB_SSL` | Enable SSL/TLS for MySQL connection | `false` |
 | `DB_SSL_CA` | Path to CA certificate file (when SSL enabled) | - |
 
 **SSL/TLS Usage:**
 ```env
 # Production with SSL
-DB_USE_SSL=true
+DB_SSL=true
 DB_SSL_CA=/path/to/ca-cert.pem
 ```
 

@@ -295,12 +295,13 @@ AUTH_DOMAIN=.fastraven.loc
 
 DB_HOST=localhost
 
-DB_USE_SSL=false
-DB_SSL_CA=/path/to/ca.pem
-
 DB_NAME=test
 DB_USER=raven
 DB_PASS=secret
+
+DB_SSL=false
+DB_SSL_CA=/path/to/ca.pem
+DB_PERSISTENT=true
 
 SMTP_HOST=smtp.fastraven.loc
 SMTP_PORT=587
@@ -315,12 +316,13 @@ AUTH_DOMAIN=.fastraven.loc
 
 DB_HOST=localhost
 
-DB_USE_SSL=false
-DB_SSL_CA=/path/to/ca.pem
-
 DB_NAME=test
 DB_USER=raven
 DB_PASS=secret
+
+DB_SSL=false
+DB_SSL_CA=/path/to/ca.pem
+DB_PERSISTENT=true
 
 SMTP_HOST=smtp.fastraven.loc
 SMTP_PORT=587
@@ -341,12 +343,13 @@ AUTH_DOMAIN=.fastraven.loc
 
 DB_HOST=localhost
 
-DB_USE_SSL=false
-DB_SSL_CA=/path/to/ca.pem
-
 DB_NAME=test
 DB_USER=raven
 DB_PASS=secret
+
+DB_SSL=false
+DB_SSL_CA=/path/to/ca.pem
+DB_PERSISTENT=true
 
 SMTP_HOST=smtp.fastraven.loc
 SMTP_PORT=587
@@ -361,12 +364,13 @@ AUTH_DOMAIN=.fastraven.loc
 
 DB_HOST=localhost
 
-DB_USE_SSL=false
-DB_SSL_CA=/path/to/ca.pem
-
 DB_NAME=test
 DB_USER=raven
 DB_PASS=secret
+
+DB_SSL=false
+DB_SSL_CA=/path/to/ca.pem
+DB_PERSISTENT=true
 
 SMTP_HOST=smtp.fastraven.loc
 SMTP_PORT=587

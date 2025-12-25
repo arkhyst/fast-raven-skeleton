@@ -229,16 +229,18 @@ EOF
 use FastRaven\Components\Core\Template;
 use FastRaven\Components\Routing\Endpoint;
 use FastRaven\Components\Routing\Router;
+
 use FastRaven\Components\Data\Collection;
 use FastRaven\Components\Data\Item;
 
+use FastRaven\Components\Types\MiddlewareType;
+
 // View Router configuration. You can append a template to each view.
-$viewRouter = Router::views([
-    Endpoint::view(false, "/", "main.html"),
-    Endpoint::view(false, "/ping", "ping.html", Template::flex(title: "Ping test", autofill: Collection::new([
+$viewRouter = Router::new(MiddlewareType::VIEW)
+    ->add(Endpoint::view(false, "/", "main.html"))
+    ->add(Endpoint::view(false, "/ping", "ping.html", Template::flex(title: "Ping test", autofill: Collection::new([
         Item::new("#api-result-span", "/api/ping")
-    ])))
-]);
+    ]))));
 
 return $viewRouter;
 EOF
@@ -250,11 +252,12 @@ EOF
 use FastRaven\Components\Routing\Endpoint;
 use FastRaven\Components\Routing\Router;
 
+use FastRaven\Components\Types\MiddlewareType;
+
 // API Router configuration. /api/ prefix is automatically added.
-$apiRouter = Router::api([
-    Endpoint::api(false, "GET","/health", "Health.php"),
-    Endpoint::api(false, "GET","/ping", "Pong.php")
-]);
+$apiRouter = Router::new(MiddlewareType::API)
+    ->add(Endpoint::api(false, "GET","/health", "Health.php"))
+    ->add(Endpoint::api(false, "GET","/ping", "Pong.php"));
 
 return $apiRouter;
 EOF
@@ -266,10 +269,11 @@ EOF
 use FastRaven\Components\Routing\Endpoint;
 use FastRaven\Components\Routing\Router;
 
+use FastRaven\Components\Types\MiddlewareType;
+
 // CDN Router configuration. /cdn/ prefix is automatically added.
-$cdnRouter = Router::cdn([
-    Endpoint::cdn(false, "GET","/favicon", "Favicon.php"),
-]);
+$cdnRouter = Router::new(MiddlewareType::CDN)
+    ->add(Endpoint::cdn(false, "GET","/favicon", "Favicon.php"));
 
 return $cdnRouter;
 EOF

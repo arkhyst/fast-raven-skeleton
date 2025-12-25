@@ -3,10 +3,11 @@
 use FastRaven\Components\Routing\Endpoint;
 use FastRaven\Components\Routing\Router;
 
+use FastRaven\Components\Types\MiddlewareType;
+
 // API Router configuration. /api/ prefix is automatically added.
-$apiRouter = Router::api([
-    Endpoint::api(false, "GET","/health", "Health.php"),
-    Endpoint::api(false, "GET","/ping", "Pong.php")
-]);
+$apiRouter = Router::new(MiddlewareType::API)
+    ->add(Endpoint::api(false, "GET","/health", "Health.php"))
+    ->add(Endpoint::api(false, "GET","/ping", "Pong.php"));
 
 return $apiRouter;

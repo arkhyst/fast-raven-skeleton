@@ -540,24 +540,34 @@ $defaultTemplate->merge($pageTemplate);
 
 Defines routes for views, APIs, and CDN. Located at `src/Components/Routing/Router.php`.
 
+Routes are stored in a hash map for O(1) lookup performance.
+
 ```php
 use FastRaven\Components\Routing\Router;
 use FastRaven\Components\Routing\Endpoint;
+use FastRaven\Components\Types\MiddlewareType;
 
-$viewRouter = Router::views([
-    Endpoint::view(false, "/", "main.html"),
-    Endpoint::view(true, "/dashboard", "dashboard.html"),
-]);
+$viewRouter = Router::new(MiddlewareType::VIEW)
+    ->add(Endpoint::view(false, "/", "main.html"))
+    ->add(Endpoint::view(true, "/dashboard", "dashboard.html"));
 
-$apiRouter = Router::api([
-    Endpoint::api(false, "GET", "/health", "Health.php"),
-    Endpoint::api(true, "POST", "/user/update", "user/Update.php"),
-]);
+$apiRouter = Router::new(MiddlewareType::API)
+    ->add(Endpoint::api(false, "GET", "/health", "Health.php"))
+    ->add(Endpoint::api(true, "POST", "/user/update", "user/Update.php"));
 
-$cdnRouter = Router::cdn([
-    Endpoint::cdn(false, "GET", "/favicon", "Favicon.php"),
-]);
+$cdnRouter = Router::new(MiddlewareType::CDN)
+    ->add(Endpoint::cdn(false, "GET", "/favicon", "Favicon.php"));
 ```
+
+#### Methods
+
+| Method | Parameters | Return | Description |
+|--------|------------|--------|-------------|
+| `new(type)` | `MiddlewareType` | `Router` | Creates new Router instance |
+| `add(endpoint)` | `Endpoint` | `Router` | Adds endpoint (chainable) |
+| `getType()` | - | `MiddlewareType` | Router type (VIEW, API, CDN) |
+| `getEndpointList()` | - | `array` | Hash map of endpoints (complexPath => Endpoint) |
+| `getSubrouterList()` | - | `array` | List of nested router endpoints |
 
 ---
 

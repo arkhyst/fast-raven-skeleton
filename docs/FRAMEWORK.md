@@ -867,6 +867,8 @@ Located at `src/Components/Types/DataType.php`. Comprehensive MIME type definiti
 
 Generic data structures for key-value pairs. Located at `src/Components/Data/Collection.php` and `src/Components/Data/Item.php`.
 
+Collection uses O(1) hash map lookup internally. Item is an input contract - values are stored directly for performance.
+
 ```php
 use FastRaven\Components\Data\Collection;
 use FastRaven\Components\Data\Item;
@@ -876,18 +878,18 @@ $item = Item::new("username", "john_doe");
 $mailItem = Item::mail("John Doe", "john@example.com");  // Convenience for email
 $fileItem = Item::file("document.pdf", "path/to/file"); // Convenience for files
 
-// Create collection
+// Create collection (chainable)
 $collection = Collection::new([
     Item::new("email", "user@example.com"),
     Item::new("active", true)
 ]);
 
-// Or build incrementally
-$collection = Collection::new();
-$collection->add(Item::new("name", "John"));
-$collection->add(Item::new("age", 30));
+// Or build incrementally with chaining
+$collection = Collection::new()
+    ->add(Item::new("name", "John"))
+    ->add(Item::new("age", 30));
 
-// Access items
+// Access items - O(1) lookup
 $item = $collection->get("name");       // Item or null
 $value = $item->getValue();             // "John"
 $key = $item->getKey();                 // "name"
@@ -896,13 +898,27 @@ $key = $item->getKey();                 // "name"
 $keys = $collection->getAllKeys();      // ["name", "age"]
 $values = $collection->getAllValues();  // ["John", 30]
 
-// Modify collection
+// Modify collection - O(1) operations
 $collection->set("name", Item::new("name", "Jane"));  // Update existing
 $collection->remove("age");                            // Remove item
 
 // Merge collections
 $collection1->merge($collection2);
 ```
+
+#### Methods
+
+| Method | Return | Description |
+|--------|--------|-------------|
+| `new(Item[])` | `Collection` | Creates new Collection |
+| `add(Item)` | `Collection` | Adds item (chainable) |
+| `get(key)` | `?Item` | O(1) lookup by key |
+| `set(key, Item)` | `void` | Updates item |
+| `remove(key)` | `void` | O(1) remove by key |
+| `merge(Collection)` | `void` | Merges another collection |
+| `getAllKeys()` | `array` | All keys |
+| `getAllValues()` | `array` | All values |
+| `getRawData()` | `array` | Internal key=>value array |
 
 > [!IMPORTANT]
 > Collections are used throughout the framework for type-safe key-value pairs. They're especially important in DataWorker where they provide SQL injection protection through prepared statements.

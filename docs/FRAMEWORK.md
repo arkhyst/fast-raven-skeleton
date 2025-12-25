@@ -62,6 +62,8 @@ graph LR
         LW[LogWorker]
         MW[MailWorker]
         VW[ValidationWorker]
+        FW[FileWorker]
+        CW[CacheWorker]
         Bee[Bee]
     end
     
@@ -72,7 +74,8 @@ graph LR
         LS[LogSlave]
         MS[MailSlave]
         VS[ValidationSlave]
-        SS[StorageSlave]
+        FS[FileSlave]
+        CS[CacheSlave]
     end
     
     subgraph "Core"
@@ -81,13 +84,15 @@ graph LR
     end
     
     S --> K
-    K --> AS & DS & HS & LS & MS & VS & SS
+    K --> AS & DS & HS & LS & MS & VS & FS & CS
     AW -.-> AS
     DW -.-> DS
     HW -.-> HS
     LW -.-> LS
     MW -.-> MS
     VW -.-> VS
+    FW -.-> FS
+    CW -.-> CS
 ```
 
 > [!NOTE]
@@ -117,7 +122,7 @@ framework/
 │   │   └── EndpointFileNotFoundException.php   # 500 - File missing
 │   ├── Internal/             # Internal components (not for direct use)
 │   │   ├── Core/             # Kernel
-│   │   ├── Slave/            # AuthSlave, DataSlave, HeaderSlave, LogSlave, MailSlave, StorageSlave, ValidationSlave
+│   │   ├── Slave/            # AuthSlave, DataSlave, HeaderSlave, LogSlave, MailSlave, FileSlave, CacheSlave, ValidationSlave
 │   │   ├── Stash/            # LogStash
 │   │   └── Template/         # main.php, lib.js, style.scss (compiled versions included)
 │   ├── Workers/              # Public API for developers
@@ -127,6 +132,8 @@ framework/
 │   │   ├── HeaderWorker.php  # HTTP header management
 │   │   ├── LogWorker.php     # Logging system
 │   │   ├── MailWorker.php    # Email sending
+│   │   ├── FileWorker.php    # File upload management
+│   │   ├── CacheWorker.php   # Cache operations (APCu, shmop, file)
 │   │   └── ValidationWorker.php # Input validation
 │   └── Server.php            # Main server class
 └── tests/                    # PHPUnit tests
@@ -750,7 +757,7 @@ Handle file uploads using the `file()` method:
 
 ```php
 use FastRaven\Workers\Bee;
-use FastRaven\Workers\StorageWorker;
+use FastRaven\Workers\FileWorker;
 
 return function(Request $request): Response {
     $tmpFile = $request->file("avatar");  // Returns temp path or null
@@ -767,7 +774,7 @@ return function(Request $request): Response {
     
     // Move to storage/uploads/
     $userId = AuthWorker::getAuthorizedUserId();
-    if (StorageWorker::uploadFile($tmpFile, "avatars/user_{$userId}.jpg")) {
+    if (FileWorker::upload($tmpFile, "avatars/user_{$userId}.jpg")) {
         return Response::new(true, 200, "Avatar uploaded");
     }
     
@@ -1775,6 +1782,163 @@ $debug = Bee::env("DEBUG", "false") === "true";
 $apiKey = "sk-12345";
 $debug = true;
 ```
+
+---
+
+## CacheWorker
+
+Manages caching with automatic backend selection. Located at `src/Workers/CacheWorker.php`.
+
+### Backend Priority
+
+CacheWorker automatically selects the best available backend:
+
+| Backend | Priority | Requirements |
+|---------|----------|--------------|
+| **APCu** | 1st | `apcu` extension enabled |
+| **shmop** | 2nd | `shmop` extension enabled |
+| **File** | 3rd | Always available (fallback) |
+
+### Basic Usage
+
+```php
+use FastRaven\Workers\CacheWorker;
+
+// Write to cache (expires in 60 seconds)
+CacheWorker::write("user:123", $userData, 60);
+
+// Read from cache
+$userData = CacheWorker::read("user:123");  // Returns value or null
+
+// Read with metadata (includes expiry)
+$item = CacheWorker::readWithMeta("user:123");
+// ["value" => $userData, "expires" => 1703616000]
+
+// Check existence
+if (CacheWorker::exists("user:123")) { ... }
+
+// Remove from cache
+CacheWorker::remove("user:123");
+```
+
+### Counter Operations
+
+```php
+// Increment (for rate limiting, counters)
+CacheWorker::write("counter", 0, 3600);
+$newValue = CacheWorker::increment("counter", 1);  // Returns 1 or 0 on failure
+
+// Decrement
+$newValue = CacheWorker::decrement("counter", 1);
+```
+
+### Methods
+
+| Method | Parameters | Return | Description |
+|--------|------------|--------|-------------|
+| `getUsedType()` | - | `CacheType` | Current backend (APCU, SHARED, FILE) |
+| `exists(key)` | `string` | `bool` | Check if key exists |
+| `read(key)` | `string` | `mixed` | Get cached value |
+| `readWithMeta(key)` | `string` | `?array` | Get value with expiry metadata |
+| `write(key, value, expires)` | `string`, `mixed`, `int` | `bool` | Store value with TTL |
+| `increment(key, step)` | `string`, `int` | `int` | Increment integer value |
+| `decrement(key, step)` | `string`, `int` | `int` | Decrement integer value |
+| `remove(key)` | `string` | `bool` | Delete cached item |
+| `empty()` | - | `bool` | Clear all cache (APCu/File only) |
+| `runGarbageCollector(power)` | `int` | `void` | Clean expired files (File backend only) |
+
+### Garbage Collection
+
+File-based cache requires periodic cleanup. Configure in `config/config.php`:
+
+```php
+$config->configureCache(
+    1,   // gcProbability: 1% chance to run GC per request
+    50   // gcPower: Check up to 50 files per GC run
+);
+```
+
+> [!NOTE]
+> Garbage collection only runs for the FILE backend. APCu and shmop manage expiry internally.
+
+---
+
+## FileWorker
+
+Manages file uploads to `storage/uploads/`. Located at `src/Workers/FileWorker.php`.
+
+### Basic Usage
+
+```php
+use FastRaven\Workers\FileWorker;
+
+// Upload a file from request
+$tmpFile = $request->file("avatar");
+if ($tmpFile && FileWorker::upload($tmpFile, "avatars/user_123.jpg")) {
+    // File saved to storage/uploads/avatars/user_123.jpg
+}
+
+// Check if file exists
+if (FileWorker::exists("avatars/user_123.jpg")) { ... }
+
+// Read file contents
+$content = FileWorker::read("documents/report.txt");
+
+// Delete file
+FileWorker::delete("avatars/user_123.jpg");
+
+// Get full path (for CDN responses)
+$path = FileWorker::getUploadFilePath("avatars/user_123.jpg");
+// Returns: /path/to/site/storage/uploads/avatars/user_123.jpg
+```
+
+### Methods
+
+| Method | Parameters | Return | Description |
+|--------|------------|--------|-------------|
+| `getUploadFilePath(path)` | `string` | `?string` | Get absolute path to file |
+| `exists(path)` | `string` | `bool` | Check if file exists |
+| `upload(tmpFile, destPath)` | `string`, `string` | `bool` | Move uploaded file to destination |
+| `read(path)` | `string` | `?string` | Read file contents |
+| `delete(path)` | `string` | `bool` | Delete file |
+
+### File Upload Example
+
+```php
+use FastRaven\Components\Http\Response;
+use FastRaven\Workers\FileWorker;
+use FastRaven\Workers\Bee;
+use FastRaven\Workers\AuthWorker;
+
+return function(Request $request): Response {
+    $tmpFile = $request->file("document");
+    
+    if (!$tmpFile) {
+        return Response::new(false, 400, "No file uploaded");
+    }
+    
+    // Validate file type
+    $mimeType = Bee::getFileMimeType($tmpFile);
+    if (!in_array($mimeType, ["application/pdf", "image/png", "image/jpeg"])) {
+        return Response::new(false, 400, "Invalid file type");
+    }
+    
+    // Generate safe filename
+    $userId = AuthWorker::getAuthorizedUserId();
+    $ext = pathinfo($_FILES["document"]["name"], PATHINFO_EXTENSION);
+    $filename = "user_{$userId}_" . Bee::generateRandomString(8) . ".{$ext}";
+    
+    // Upload
+    if (FileWorker::upload($tmpFile, "documents/{$filename}")) {
+        return Response::new(true, 200, "File uploaded", ["filename" => $filename]);
+    }
+    
+    return Response::new(false, 500, "Upload failed");
+};
+```
+
+> [!IMPORTANT]
+> File paths are automatically sanitized via `Bee::normalizePath()`. Configure max file size in `config/config.php` via `configureLengthLimits()`.
 
 ---
 

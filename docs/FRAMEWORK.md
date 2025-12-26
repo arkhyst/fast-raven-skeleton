@@ -85,8 +85,10 @@ skeleton/sites/main/
 ├── src/
 │   ├── api/              API endpoint files
 │   ├── cdn/              CDN endpoint files
-│   └── web/views/        pages/, fragments/, mails/
-├── public/assets/        css/, js/, img/, fonts/
+│   └── web/
+│       ├── views/        pages/, fragments/, mails/
+│       └── assets/       scss/, js/ (compiled via watch.sh)
+├── public/assets/        css/, js/, img/, fonts/ (compiled output)
 ├── storage/              cache/, logs/, uploads/
 └── index.php
 ```
@@ -486,10 +488,50 @@ All exceptions extend `SmartException` with `getStatusCode()`, `getMessage()`, a
 
 ## JavaScript Client (Lib)
 
+The framework injects `Lib` class into all views with CSRF token handling.
+
+### Lib.request()
+
+Send JSON API requests with automatic CSRF handling.
+
 ```javascript
-// Automatic CSRF handling
-Lib.request("/api/user/update", "POST", { name: "John" })
+// GET request
+Lib.request("/api/users/", "GET")
     .then(res => console.log(res.success, res.msg, res.data));
+
+// POST with data
+Lib.request("/api/user/update/", "POST", { name: "John" })
+    .then(res => console.log(res));
+```
+
+### Lib.uploadFile()
+
+Upload files via FormData with automatic CSRF handling.
+
+```javascript
+// Default field names ('file' for single, 'files[]' for multiple)
+Lib.uploadFile("/api/upload/", document.getElementById("fileInput"))
+    .then(res => console.log(res));
+
+// Custom field name
+Lib.uploadFile("/api/upload/", fileInput, "avatar")
+    .then(res => console.log(res));
+
+// With custom name AND extra data
+Lib.uploadFile("/api/upload/", fileInput, "document", { category: "pdf" })
+    .then(res => console.log(res));
+```
+
+**Backend handling:**
+```php
+return function(Request $request): Response {
+    $avatar = $request->file("avatar");      // Custom name
+    $doc = $request->file("document");       // Custom name
+    $default = $request->file("file");       // Default single
+    
+    FileWorker::upload($avatar, "avatar.jpg");
+    return Response::new(true, 200, "Uploaded");
+};
 ```
 
 ---

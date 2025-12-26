@@ -76,21 +76,45 @@ framework/src/
 ```
 
 ```
-skeleton/sites/main/
-├── config/
-│   ├── env/              .env, .env.dev, .env.prod
-│   ├── router/           views.php, api.php, cdn.php
-│   ├── config.php
-│   └── template.php
-├── src/
-│   ├── api/              API endpoint files
-│   ├── cdn/              CDN endpoint files
-│   └── web/
-│       ├── views/        pages/, fragments/, mails/
-│       └── assets/       scss/, js/ (compiled via watch.sh)
-├── public/assets/        css/, js/, img/, fonts/ (compiled output)
-├── storage/              cache/, logs/, uploads/
-└── index.php
+skeleton/
+├── shared/               Shared classes (Shared\ namespace)
+└── sites/main/
+    ├── config/
+    │   ├── env/              .env, .env.dev, .env.prod
+    │   ├── router/           views.php, api.php, cdn.php
+    │   ├── config.php
+    │   └── template.php
+    ├── src/
+    │   ├── api/              API endpoint files
+    │   ├── cdn/              CDN endpoint files
+    │   └── web/
+    │       ├── views/        pages/, fragments/, mails/
+    │       └── assets/       scss/, js/ (compiled via watch.sh)
+    ├── public/assets/        css/, js/, img/, fonts/ (compiled output)
+    ├── storage/              cache/, logs/, uploads/
+    └── index.php
+```
+
+### Shared Classes
+
+Create reusable classes in `shared/` available across all sites via the `Shared\` namespace:
+
+```php
+// shared/HelperClass.php
+namespace Shared;
+
+final class HelperClass {
+    public static function doSomething(): void {
+        // Custom logic
+    }
+}
+```
+
+```php
+// Usage in any endpoint
+use Shared\HelperClass;
+
+HelperClass::doSomething();
 ```
 
 ---

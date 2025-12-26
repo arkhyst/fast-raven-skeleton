@@ -506,10 +506,10 @@ Lib.request("/api/user/update/", "POST", { name: "John" })
 
 ### Lib.uploadFile()
 
-Upload files via FormData with automatic CSRF handling.
+Upload a file via FormData with automatic CSRF handling.
 
 ```javascript
-// Default field names ('file' for single, 'files[]' for multiple)
+// Using input element (default field name: 'file')
 Lib.uploadFile("/api/upload/", document.getElementById("fileInput"))
     .then(res => console.log(res));
 
@@ -517,7 +517,7 @@ Lib.uploadFile("/api/upload/", document.getElementById("fileInput"))
 Lib.uploadFile("/api/upload/", fileInput, "avatar")
     .then(res => console.log(res));
 
-// With custom name AND extra data
+// With extra data
 Lib.uploadFile("/api/upload/", fileInput, "document", { category: "pdf" })
     .then(res => console.log(res));
 ```
@@ -529,7 +529,9 @@ return function(Request $request): Response {
     $doc = $request->file("document");       // Custom name
     $default = $request->file("file");       // Default single
     
-    FileWorker::upload($avatar, "avatar.jpg");
+    // Upload to storage/uploads/
+    FileWorker::upload($file, $file->getName());
+    
     return Response::new(true, 200, "Uploaded");
 };
 ```

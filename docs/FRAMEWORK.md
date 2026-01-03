@@ -520,7 +520,7 @@ ValidationWorker::username($username, ValidationFlags::username(
 ));
 
 // Phone validation
-ValidationWorker::phone($countryCode, $phone);  // 10-15 chars, code 1-999
+ValidationWorker::phone($countryCode, $phone);  // 7-15 chars, code 1-999
 ```
 
 ---

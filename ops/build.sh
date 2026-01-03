@@ -153,6 +153,8 @@ declare(strict_types=1);
 require __DIR__ . "/../../vendor/autoload.php";
 
 use FastRaven\Server;
+use FastRaven\Workers\Bee;
+use FastRaven\Types\ProjectFolderType;
 
 // Server initialization. sitePath SHOULD ALWAYS BE __DIR__ unless you know what you are doing.
 $server = Server::initialize(__DIR__);
@@ -165,6 +167,9 @@ $server->configure(
     Server::getApiRouter(),
     Server::getCdnRouter()
 );
+
+// Load starters and finishers
+require_once Bee::buildProjectPath(ProjectFolderType::CONFIG, "filters.php");
 
 // This is where the magic happens.
 $server->run();
@@ -220,6 +225,31 @@ use FastRaven\Workers\Bee;
 $template = Template::new("Fast Raven Site", Bee::env("VERSION", "0.0.1"), "en");
 
 return $template;
+EOF
+
+    # filters.php
+    cat > "$SITE_PATH/config/filters.php" <<'EOF'
+<?php
+
+use FastRaven\Workers\LogWorker;
+
+use FastRaven\Components\Http\Request;
+use FastRaven\Components\Http\Response;
+
+$server->addStarter(function(Request $request) {
+    LogWorker::log("This gets executed BEFORE Kernel::process() -- Check config/filters.php to remove this line.");
+    // You can limit it to request types. 
+    // if($request->getType() === MiddlewareType::API)
+    // Or use Shared methods for more complex operations.
+    // Shared\HelperClass::log("test");
+
+    return true; // Return false to deny request processing
+});
+
+$server->addFinisher(function(Request $request, Response $response) { 
+    LogWorker::log("This gets executed AFTER Kernel::process() -- Check config/filters.php to remove this line.");
+    return true; // Return false to deny response sending
+});
 EOF
     
     # router/views.php

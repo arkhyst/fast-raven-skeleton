@@ -19,6 +19,7 @@ $server->configure(
     Server::getCdnRouter()
 );
 
+// Load starters and finishers
 require_once Bee::buildProjectPath(ProjectFolderType::CONFIG, "filters.php");
 
 // This is where the magic happens.

@@ -8,7 +8,7 @@ use FastRaven\Components\Http\Response;
 $server->addStarter(function(Request $request) {
     LogWorker::log("This gets executed BEFORE Kernel::process() -- Check config/filters.php to remove this line.");
     // You can limit it to request types. 
-    // if($request->getType() === MiddlewareType::API)
+    // if($request->getType() === EndpointType::API)
     // Or use Shared methods for more complex operations.
     // Shared\HelperClass::log("test");
 

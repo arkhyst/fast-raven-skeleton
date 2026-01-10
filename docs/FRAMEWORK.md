@@ -241,7 +241,7 @@ $server->addStarter(function(Request $request) {
     // if (Bee::env("MAINTENANCE") === "true") return false;
     
     // Example: Block specific request types
-    // if ($request->getType() === MiddlewareType::API) { ... }
+    // if ($request->getType() === EndpointType::API) { ... }
     
     return true;
 });
@@ -270,9 +270,9 @@ $server->addFinisher(function(Request $request, Response $response) {
 use FastRaven\Components\Core\Template;
 use FastRaven\Components\Routing\{Endpoint, Router};
 use FastRaven\Components\Data\{Collection, Item};
-use FastRaven\Types\MiddlewareType;
+use FastRaven\Types\EndpointType;
 
-$viewRouter = Router::new(MiddlewareType::VIEW)
+$viewRouter = Router::new(EndpointType::VIEW)
     ->add(Endpoint::view(false, "/", "main.html"))
     ->add(Endpoint::view(true, "/dashboard", "dashboard.html"))  // Restricted
     ->add(Endpoint::view(false, "/ping", "ping.html", Template::flex(
@@ -289,10 +289,10 @@ return $viewRouter;
 <?php
 
 use FastRaven\Components\Routing\{Endpoint, Router};
-use FastRaven\Types\MiddlewareType;
+use FastRaven\Types\EndpointType;
 
 // API Router - /api/ prefix is automatically added
-$apiRouter = Router::new(MiddlewareType::API)
+$apiRouter = Router::new(EndpointType::API)
     ->add(Endpoint::api(false, "GET", "/health", "Health.php"))
     ->add(Endpoint::api(false, "GET", "/ping", "Pong.php"))
     ->add(Endpoint::api(true, "POST", "/user/update", "user/Update.php"))  // Restricted
@@ -307,10 +307,10 @@ return $apiRouter;
 <?php
 
 use FastRaven\Components\Routing\{Endpoint, Router};
-use FastRaven\Types\MiddlewareType;
+use FastRaven\Types\EndpointType;
 
 // CDN Router - /cdn/ prefix is automatically added
-$cdnRouter = Router::new(MiddlewareType::CDN)
+$cdnRouter = Router::new(EndpointType::CDN)
     ->add(Endpoint::cdn(false, "GET", "/favicon", "Favicon.php"));
 
 return $cdnRouter;
@@ -633,7 +633,7 @@ HeaderWorker::removeHeader("X-Custom");
 ### Request
 
 ```php
-$request->getType();              // MiddlewareType::VIEW/API/CDN
+$request->getType();              // EndpointType::VIEW/API/CDN
 $request->getMethod();            // GET, POST, PUT, DELETE, PATCH
 $request->getPath();              // /api/users/
 $request->getComplexPath();       // /api/users/#POST (for routing)
@@ -860,7 +860,7 @@ Input sanitization levels (use with `$request->get()` / `$request->post()`):
 
 | Enum | Values |
 |------|--------|
-| `MiddlewareType` | VIEW, API, CDN, ROUTER |
+| `EndpointType` | VIEW, API, CDN, ROUTER |
 | `CacheType` | APCU, SHARED, FILE |
 | `QueryType` | SELECT, INSERT, UPDATE, DELETE, COUNT |
 | `DataType` | 55+ MIME types (HTML, JSON, PNG, PDF, etc.) |
@@ -984,12 +984,12 @@ For organizing large applications, use nested routers:
 ```php
 // config/router/api.php (main router)
 use FastRaven\Components\Routing\{Router, Endpoint};
-use FastRaven\Types\MiddlewareType;
+use FastRaven\Types\EndpointType;
 
-$apiRouter = Router::new(MiddlewareType::API)
+$apiRouter = Router::new(EndpointType::API)
     ->add(Endpoint::api(false, "GET", "/health", "Health.php"))
     // Nested router for all /api/admin/* endpoints
-    ->add(Endpoint::router(MiddlewareType::API, true, "/admin", "admin.php"));
+    ->add(Endpoint::router(EndpointType::API, true, "/admin", "admin.php"));
 
 return $apiRouter;
 ```
@@ -997,12 +997,12 @@ return $apiRouter;
 ```php
 // config/router/admin.php (nested router)
 use FastRaven\Components\Routing\{Router, Endpoint};
-use FastRaven\Types\MiddlewareType;
+use FastRaven\Types\EndpointType;
 
-// All endpoints here are already under /api/admin/ and restricted
-$adminRouter = Router::new(MiddlewareType::API)
-    ->add(Endpoint::api(false, "GET", "/users", "admin/Users.php"))
-    ->add(Endpoint::api(false, "POST", "/ban", "admin/Ban.php"));
+// All endpoints here are already under /api/ and restricted
+$adminRouter = Router::new(EndpointType::API)
+    ->add(Endpoint::api(false, "GET", "/admin/users", "admin/Users.php"))
+    ->add(Endpoint::api(false, "POST", "/admin/ban", "admin/Ban.php"));
 
 return $adminRouter;
 ```

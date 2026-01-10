@@ -239,7 +239,7 @@ use FastRaven\Components\Http\Response;
 $server->addStarter(function(Request $request) {
     LogWorker::log("This gets executed BEFORE Kernel::process() -- Check config/filters.php to remove this line.");
     // You can limit it to request types. 
-    // if($request->getType() === MiddlewareType::API)
+    // if($request->getType() === EndpointType::API)
     // Or use Shared methods for more complex operations.
     // Shared\HelperClass::log("test");
 
@@ -263,10 +263,10 @@ use FastRaven\Components\Routing\Router;
 use FastRaven\Components\Data\Collection;
 use FastRaven\Components\Data\Item;
 
-use FastRaven\Types\MiddlewareType;
+use FastRaven\Types\EndpointType;
 
 // View Router configuration. You can append a template to each view.
-$viewRouter = Router::new(MiddlewareType::VIEW)
+$viewRouter = Router::new(EndpointType::VIEW)
     ->add(Endpoint::view(false, "/", "main.html"))
     ->add(Endpoint::view(false, "/ping", "ping.html", Template::flex(title: "Ping test", autofill: Collection::new([
         Item::new("#api-result-span", "/api/ping")
@@ -282,10 +282,10 @@ EOF
 use FastRaven\Components\Routing\Endpoint;
 use FastRaven\Components\Routing\Router;
 
-use FastRaven\Types\MiddlewareType;
+use FastRaven\Types\EndpointType;
 
 // API Router configuration. /api/ prefix is automatically added.
-$apiRouter = Router::new(MiddlewareType::API)
+$apiRouter = Router::new(EndpointType::API)
     ->add(Endpoint::api(false, "GET","/health", "Health.php"))
     ->add(Endpoint::api(false, "GET","/ping", "Pong.php"));
 
@@ -299,10 +299,10 @@ EOF
 use FastRaven\Components\Routing\Endpoint;
 use FastRaven\Components\Routing\Router;
 
-use FastRaven\Types\MiddlewareType;
+use FastRaven\Types\EndpointType;
 
 // CDN Router configuration. /cdn/ prefix is automatically added.
-$cdnRouter = Router::new(MiddlewareType::CDN)
+$cdnRouter = Router::new(EndpointType::CDN)
     ->add(Endpoint::cdn(false, "GET","/favicon", "Favicon.php"));
 
 return $cdnRouter;

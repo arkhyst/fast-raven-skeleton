@@ -253,6 +253,7 @@ Lib.changeLanguage('en');
 **How it works:**
 - On page load, `window.LANG` is populated with all translations from the CSV
 - `Lib.changeLanguage(lang)` updates all `data-lang` elements with translations for that language
+- **Performance:** Language data is cached for 1 hour to avoid re-parsing the CSV on every request
 
 ---
 
@@ -425,6 +426,9 @@ $valid = Bee::validateCallable($callable, [Request::class, Template::class]);
 
 // CSV parsing (for i18n)
 $langs = Bee::parseCSV("lang/global.csv");  // Returns ["en" => ["KEY" => "value"], ...]
+
+// Cache Keys
+$key = Bee::getCacheKey("session", "user_1"); // → "fastraven:example.com:session:hash"
 ```
 
 ---
@@ -648,8 +652,22 @@ $mail->setAttachments(Collection::new([
 // Optional: Set timeout (default 3000ms)
 $mail->setTimeout(5000);
 
-MailWorker::sendMail($mail);
+// Send synchronously - blocks until sent, returns success/failure
+MailWorker::send($mail);
+
+// Send async (fire-and-forget) - queued, sent after response
+// Use for notifications that don't need confirmation
+MailWorker::send($mail, true);
 ```
+
+**Sending Modes:**
+
+| Mode | Usage | Blocks? | Returns |
+|------|-------|---------|---------|
+| `send($mail)` | Registration, password reset | Yes | `bool` (success) |
+| `send($mail, true)` | Notifications, alerts | No | `bool` (queued) |
+
+Fire-and-forget emails are processed after `fastcgi_finish_request()`, so the user receives their response immediately while emails are sent in the background.
 
 **Mail Templates:**
 - Location: `src/web/templates/mails/`

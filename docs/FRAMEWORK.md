@@ -13,6 +13,7 @@
 | 📊 Database | PDO with prepared statements, SQL injection protection |
 | ⚡ Caching | APCu → shmop → file fallback with auto-selection |
 | 🎨 Templates | Fragments, data passing, asset versioning |
+| 🌐 i18n | CSV-based translations with dynamic language switching |
 | 🎯 Middlewares | Per-endpoint request control |
 | ✅ Validation | Email, password, username, age, phone |
 | 📧 Email | PHPMailer with templates and attachments |
@@ -186,7 +187,9 @@ use FastRaven\Workers\Bee;
 
 // Default template for all views.
 $template = Template::new("main.php", "Fast Raven Site", Bee::env("VERSION", "0.0.1"));
-$template->setFavicon("favicon.png")
+$template->setLangFile("global")           // CSV file in src/web/lang/
+         ->setDefaultLang("en")            // Default language column
+         ->setFavicon("favicon.png")
          ->setBeforeFragments(["header.php"])
          ->addStyle("style.css")
          ->addScript("main.js");
@@ -202,6 +205,8 @@ return $template;
 | `setFile/setTitle/setVersion` | Setters with chaining |
 | `setFavicon(filename)` | Set favicon for both light/dark mode |
 | `setFaviconLight/setFaviconDark(filename)` | Set mode-specific favicons |
+| `setLangFile(filename)` | Set language CSV file (without .csv extension) |
+| `setDefaultLang(lang)` | Set default language column to use |
 | `addStyle(filename)` | Add CSS file from public/assets/css/ |
 | `addScript(filename)` | Add JS file from public/assets/js/ |
 | `setBeforeFragments(array)` | Fragments to render before main content |
@@ -210,6 +215,44 @@ return $template;
 | `getData(key)` | Get data value by key |
 | `hasData(key)` | Check if data key exists |
 | `merge(?Template)` | Merge another template (overwrites non-empty values) |
+
+---
+
+### Internationalization (i18n)
+
+FastRaven provides built-in language support using CSV files:
+
+**1. Create language file** at `src/web/lang/global.csv`:
+```csv
+key,en,es,fr
+WELCOME,Welcome,Bienvenido,Bienvenue
+GOODBYE,Goodbye,Adiós,Au revoir
+```
+
+**2. Configure template** in `config/template.php`:
+```php
+$template->setLangFile("global")    // Uses src/web/lang/global.csv
+         ->setDefaultLang("en");    // Default language on page load
+```
+
+**3. Use in HTML** with `data-lang` attribute:
+```html
+<span data-lang="WELCOME"></span>
+<p data-lang="GOODBYE"></p>
+```
+
+**4. Change language dynamically** via JavaScript:
+```javascript
+// Switch to Spanish
+Lib.changeLanguage('es');
+
+// Switch to English  
+Lib.changeLanguage('en');
+```
+
+**How it works:**
+- On page load, `window.LANG` is populated with all translations from the CSV
+- `Lib.changeLanguage(lang)` updates all `data-lang` elements with translations for that language
 
 ---
 
@@ -379,6 +422,9 @@ $full = Bee::getBuiltDomain("admin");            // "admin.example.com"
 
 // Callable validation
 $valid = Bee::validateCallable($callable, [Request::class, Template::class]);
+
+// CSV parsing (for i18n)
+$langs = Bee::parseCSV("lang/global.csv");  // Returns ["en" => ["KEY" => "value"], ...]
 ```
 
 ---

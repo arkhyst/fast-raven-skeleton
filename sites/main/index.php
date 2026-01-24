@@ -4,8 +4,6 @@ declare(strict_types=1);
 require __DIR__ . "/../../vendor/autoload.php";
 
 use FastRaven\Server;
-use FastRaven\Workers\Bee;
-use FastRaven\Types\ProjectFolderType;
 
 // Server initialization. sitePath SHOULD ALWAYS BE __DIR__ unless you know what you are doing.
 $server = Server::initialize(__DIR__);
@@ -14,13 +12,11 @@ $server = Server::initialize(__DIR__);
 $server->configure(
     Server::getConfiguration(),
     Server::getTemplate(),
+    Server::getMiddleware(),
     Server::getViewRouter(),
     Server::getApiRouter(),
     Server::getCdnRouter()
 );
-
-// Load starters and finishers
-require_once Bee::buildProjectPath(ProjectFolderType::CONFIG, "filters.php");
 
 // This is where the magic happens.
 $server->run();

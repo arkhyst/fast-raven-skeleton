@@ -950,7 +950,7 @@ Input sanitization levels (use with `$request->get()` / `$request->post()`):
 
 ## 8. Exceptions
 
-All exceptions extend `SmartException` with `getStatusCode()`, `getMessage()`, and `getPublicMessage()`.
+All exceptions extend `SmartException` with `getStatusCode()`, `getMessage()`, `getPublicMessage()`, and `getExceptionName()`.
 
 | Exception | Code | Description |
 |-----------|------|-------------|
@@ -966,6 +966,7 @@ All exceptions extend `SmartException` with `getStatusCode()`, `getMessage()`, a
 | `UploadedFileNotFoundException` | 500 | Uploaded file not in tmp directory |
 | `BadProjectSkeletonException` | 500 | Required project folder missing |
 | `SecurityVulnerabilityException` | 500 | SQL injection detected |
+| `DeveloperException` | 500 | Developer mistake on View/API/CDN endpoints |
 
 ---
 

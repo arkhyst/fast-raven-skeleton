@@ -330,6 +330,7 @@ DB_SSL_CA=/path/to/ca.pem
 DB_PERSISTENT=true
 
 SMTP_HOST=smtp.fastraven.loc
+SMTP_ENCRYPTION=tls
 SMTP_PORT=587
 SMTP_USER=raven@fastraven.loc
 SMTP_PASS=secret
@@ -351,6 +352,7 @@ DB_SSL_CA=/path/to/ca.pem
 DB_PERSISTENT=true
 
 SMTP_HOST=smtp.fastraven.loc
+SMTP_ENCRYPTION=tls
 SMTP_PORT=587
 SMTP_USER=raven@fastraven.loc
 SMTP_PASS=secret
@@ -378,6 +380,7 @@ DB_SSL_CA=/path/to/ca.pem
 DB_PERSISTENT=true
 
 SMTP_HOST=smtp.fastraven.loc
+SMTP_ENCRYPTION=tls
 SMTP_PORT=587
 SMTP_USER=raven@fastraven.loc
 SMTP_PASS=secret
@@ -399,6 +402,7 @@ DB_SSL_CA=/path/to/ca.pem
 DB_PERSISTENT=true
 
 SMTP_HOST=smtp.fastraven.loc
+SMTP_ENCRYPTION=tls
 SMTP_PORT=587
 SMTP_USER=raven@fastraven.loc
 SMTP_PASS=secret

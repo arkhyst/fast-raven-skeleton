@@ -556,27 +556,21 @@ use FastRaven\Components\Data\ValidationFlags;
 // Email validation
 ValidationWorker::email($email);  // Uses filter_var
 
-// Password validation
-ValidationWorker::password($password, ValidationFlags::password(
-    minLength: 8,
-    maxLength: 128,
-    minNumber: 1,
-    minSpecial: 1,
-    minLowercase: 1,
-    minUppercase: 1
-));
+// String validation (replaces username, password, etc.)
+ValidationWorker::string($text, [
+    ValidationType::MIN_LENGTH->value => 8,
+    ValidationType::MAX_LENGTH->value => 128,
+    ValidationType::MIN_DIGITS->value => 1,
+    ValidationType::MIN_SPECIAL->value => 1,
+    ValidationType::MIN_LOWERCASE->value => 1,
+    ValidationType::MIN_UPPERCASE->value => 1
+]);
 
-// Age validation
-ValidationWorker::age($age, ValidationFlags::age(
-    minAge: 18,
-    maxAge: 120
-));
-
-// Username validation
-ValidationWorker::username($username, ValidationFlags::username(
-    minLength: 3,
-    maxLength: 20
-));
+// Number validation (replaces age, etc.)
+ValidationWorker::number($age, [
+    ValidationType::MIN_NUMBER->value => 18,
+    ValidationType::MAX_NUMBER->value => 120
+]);
 
 // Phone validation
 ValidationWorker::phone($countryCode, $phone);  // 7-15 chars, code 1-999
@@ -842,46 +836,39 @@ $mail
 
 ---
 
-### ValidationFlags
-
-Factory class for validation rules:
+### Validation usage
+Use `ValidationType` enum values as keys for configuration arrays:
 
 ```php
-use FastRaven\Components\Data\ValidationFlags;
+use FastRaven\Types\ValidationType;
+use FastRaven\Workers\ValidationWorker;
 
-// Email flags
-ValidationFlags::email(
-    minLength: 5,    // Default: 0
-    maxLength: 255   // Default: 255
-);
+// String flags
+$flags = [
+    ValidationType::MIN_LENGTH->value => 8,      // Default: 0
+    ValidationType::MAX_LENGTH->value => 255,    // Default: 255
+    ValidationType::MIN_DIGITS->value => 1,      // Default: 0
+    ValidationType::MIN_SPECIAL->value => 1,     // Default: 0
+    ValidationType::MIN_LOWERCASE->value => 1,   // Default: 0
+    ValidationType::MIN_UPPERCASE->value => 1    // Default: 0
+];
 
-// Password flags
-ValidationFlags::password(
-    minLength: 8,      // Default: 0
-    maxLength: 128,    // Default: 255
-    minNumber: 1,      // Default: 0
-    minSpecial: 1,     // Default: 0
-    minLowercase: 1,   // Default: 0
-    minUppercase: 1    // Default: 0
-);
+// Number flags
+$numberFlags = [
+    ValidationType::MIN_NUMBER->value => 18,   // Default: 0
+    ValidationType::MAX_NUMBER->value => 120   // Default: 255
+];
 
-// Age flags
-ValidationFlags::age(
-    minAge: 18,   // Default: 12
-    maxAge: 120   // Default: 120
-);
-
-// Username flags
-ValidationFlags::username(
-    minLength: 3,    // Default: 0
-    maxLength: 20    // Default: 255
-);
-```
-
-**Usage with ValidationWorker:**
-```php
-if (!ValidationWorker::password($pass, ValidationFlags::password(8, 128, 1, 1, 1, 1))) {
-    return Response::new(false, 400, "Password must be 8+ chars with uppercase, lowercase, number, and special char");
+// Usage with ValidationWorker:
+$details = [];
+if (!ValidationWorker::string($pass, [
+    ValidationType::MIN_LENGTH->value => 8, 
+    ValidationType::MIN_DIGITS->value => 1, 
+    ValidationType::MIN_SPECIAL->value => 1
+], $details)) {
+    // $details contains specific boolean results for each check
+    // e.g., $details[ValidationType::MIN_LENGTH->value] === false
+    return Response::new(false, 400, "Password requirements not met", $details);
 }
 ```
 
@@ -945,6 +932,7 @@ Input sanitization levels (use with `$request->get()` / `$request->post()`):
 | `CacheType` | APCU, SHARED, FILE |
 | `QueryType` | SELECT, INSERT, UPDATE, DELETE, COUNT |
 | `DataType` | 55+ MIME types (HTML, JSON, PNG, PDF, etc.) |
+| `ValidationType` | MIN_LENGTH, MAX_LENGTH, MIN_DIGITS, MIN_FLOAT, etc. |
 
 ---
 

@@ -472,23 +472,24 @@ AuthWorker::autologin(
 
 ### DataWorker
 
-> ⚠️ Only `Collection` values are protected via prepared statements. Never use user input for table/column names.
+> ⚠️ Only `Map` values are protected via prepared statements. Never use user input for table/column names.
 
 ```php
 use FastRaven\Workers\DataWorker;
-use FastRaven\Components\Data\{Collection, Item};
+use FastRaven\Components\Data\{Map, ConditionList, Condition, Pair};
+use FastRaven\Types\OperatorType;
 
 // Read single row
 $user = DataWorker::selectOneById("users", ["id", "name"], 1);
-$user = DataWorker::selectOneWhere("users", ["*"], Collection::new([
-    Item::new("email", $email)
+$user = DataWorker::selectOneWhere("users", ["*"], ConditionList::new([
+    Condition::email("email", $email)
 ]));
 
 // Read multiple rows
 $users = DataWorker::selectWhere(
     "users", 
     ["id", "name"], 
-    Collection::new([Item::new("active", 1)]),
+    ConditionList::new([Condition::equals("active", 1)]),
     "name ASC",  // orderBy
     10,          // limit
     0            // offset
@@ -500,7 +501,7 @@ $allUsers = DataWorker::select("users", ["*"], "created_at DESC", 100, 0);
 $join = DataWorker::join(
     "users",
     ["orders"],
-    Collection::new([Item::new("users.id", "orders.user_id")]),
+    Map::new(["users.id" => "orders.user_id"]),
     ["users.name", "orders.total"]
 );
 
@@ -508,39 +509,39 @@ $join = DataWorker::join(
 $joinFiltered = DataWorker::joinWhere(
     "users",
     ["orders"],
-    Collection::new([Item::new("users.id", "orders.user_id")]),
+    Map::new(["users.id" => "orders.user_id"]),
     ["users.name", "orders.total"],
-    Collection::new([Item::new("users.active", 1)])
+    ConditionList::new([Condition::equals("users.active", 1)])
 );
 
 // Insert
-DataWorker::insert("users", Collection::new([
-    Item::new("name", "John"),
-    Item::new("email", "john@example.com")
+DataWorker::insert("users", Map::new([
+    "name" => "John",
+    "email" => "john@example.com"
 ]));
 $id = DataWorker::getLastInsertId();
 
 // Batch insert (single transaction)
 DataWorker::insertBatch("logs", [
-    Collection::new([Item::new("action", "login")]),
-    Collection::new([Item::new("action", "logout")])
+    Map::new(["action" => "login"]),
+    Map::new(["action" => "logout"])
 ]);
 
 // Update
-DataWorker::updateById("users", 1, Collection::new([
-    Item::new("name", "Jane")
+DataWorker::updateById("users", 1, Map::new([
+    "name" => "Jane"
 ]));
 DataWorker::updateWhere("users", 
-    Collection::new([Item::new("active", 0)]),
-    Collection::new([Item::new("old", 1)])
+    Map::new(["active" => 0]),
+    ConditionList::new([Condition::equals("old", 1)])
 );
 
 // Delete
 DataWorker::deleteById("users", 1);
-DataWorker::deleteWhere("users", Collection::new([Item::new("expired", 1)]));
+DataWorker::deleteWhere("users", ConditionList::new([Condition::equals("expired", 1)]));
 
 // Count/Exists
-$count = DataWorker::count("users", Collection::new([Item::new("active", 1)]));
+$count = DataWorker::count("users", ConditionList::new([Condition::equals("active", 1)]));
 $exists = DataWorker::existsById("users", 1);
 ```
 
@@ -643,28 +644,28 @@ Sends emails using PHPMailer with SMTP. Configure SMTP settings in `.env`.
 ```php
 use FastRaven\Workers\MailWorker;
 use FastRaven\Components\Core\Mail;
-use FastRaven\Components\Data\{Collection, Item};
+use FastRaven\Components\Data\{Map, Pair};
 
 $mail = Mail::new(
-    Item::mail("Site", "noreply@example.com"),   // From
-    Item::mail("User", "user@example.com"),      // To
+    Pair::mail("Site", "noreply@example.com"),   // From
+    Pair::mail("User", "user@example.com"),      // To
     "Welcome!",                                  // Subject
     "welcome.php"                                // Template in src/web/templates/mails/
 );
 
-$mail->setReplaceValues(Collection::new([
-    Item::new("{{NAME}}", "John"),
-    Item::new("{{LINK}}", "https://example.com/verify")
+$mail->setReplaceValues(Map::new([
+    "{{NAME}}" => "John",
+    "{{LINK}}" => "https://example.com/verify"
 ]));
 
 // Optional: Add BCC recipients
-$mail->setBccMails(Collection::new([
-    Item::mail("Admin", "admin@example.com")
+$mail->setBccMails(Map::new([
+    "Admin" => "admin@example.com"
 ]));
 
 // Optional: Add attachments (relative to storage/uploads/)
-$mail->setAttachments(Collection::new([
-    Item::new("report.pdf", "documents/report.pdf")
+$mail->setAttachments(Map::new([
+    "report.pdf" => "documents/report.pdf"
 ]));
 
 // Optional: Set timeout (default 3000ms)
@@ -759,27 +760,27 @@ Response::new(true, 200)
 
 ---
 
-### Collection & Item
+### Map & Pair
 
 O(1) hash map for type-safe key-value pairs:
 
 ```php
-use FastRaven\Components\Data\{Collection, Item};
+use FastRaven\Components\Data\{Map, Pair};
 
-$collection = Collection::new([
-    Item::new("email", "john@example.com"),
-    Item::new("name", "John")
+// Map replaces Collection and uses associative internal storage
+$map = Map::new([
+    "email" => "john@example.com",
+    "name" => "John"
 ]);
 
 // Add/Get/Set/Remove
-$collection->add(Item::new("age", 25));
-$item = $collection->get("email");      // Item or null
-$value = $item->getValue();             // "john@example.com"
-$collection->set("email", Item::new("email", "jane@example.com"));
-$collection->remove("age");
+$map->add("age", 25);
+$value = $map->get("email");      // mixed value or null (not an object)
+$map->set("email", "jane@example.com");
+$map->remove("age");
 
-// Special factory for mail
-$mailItem = Item::mail("John Doe", "john@example.com");
+// Pair is mostly used for specific strict-typed returns or specific APIs like Mail
+$mailPair = Pair::mail("John Doe", "john@example.com");
 ```
 
 ---

@@ -187,7 +187,7 @@ use FastRaven\Workers\Bee;
 
 // Default template for all views.
 $template = Template::new("main.php", "Fast Raven Site", Bee::env("VERSION", "0.0.1"));
-$template->setLangFile("global")           // CSV file in src/web/lang/
+$template->setLangFile("global")           // CSV file in src/web/assets/lang/
          ->setDefaultLang("en")            // Default language column
          ->setFavicon("favicon.png")
          ->setBeforeFragments(["header.php"])
@@ -222,7 +222,7 @@ return $template;
 
 FastRaven provides built-in language support using CSV files:
 
-**1. Create language file** at `src/web/lang/global.csv`:
+**1. Create language file** at `src/web/assets/lang/global.csv`:
 ```csv
 key,en,es,fr
 WELCOME,Welcome,Bienvenido,Bienvenue
@@ -231,7 +231,7 @@ GOODBYE,Goodbye,Adiós,Au revoir
 
 **2. Configure template** in `config/template.php`:
 ```php
-$template->setLangFile("global")    // Uses src/web/lang/global.csv
+$template->setLangFile("global")    // Uses src/web/assets/lang/global.csv
          ->setDefaultLang("en");    // Default language on page load
 ```
 
@@ -425,7 +425,12 @@ $full = Bee::getBuiltDomain("admin");            // "admin.example.com"
 $valid = Bee::validateCallable($callable, [Request::class, Template::class]);
 
 // CSV parsing (for i18n)
-$langs = Bee::parseCSV("lang/global.csv");  // Returns ["en" => ["KEY" => "value"], ...]
+$langs = Bee::parseCSV(
+    Bee::buildProjectPath(
+        ProjectFolderType::SRC_WEB_ASSETS_LANG,
+        "global.csv"
+    )
+);  // Returns ["en" => ["KEY" => "value"], ...]
 
 // Cache Keys
 $key = Bee::getCacheKey("session", "user_1"); // → "fastraven:example.com:session:hash"

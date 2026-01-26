@@ -484,6 +484,9 @@ use FastRaven\Workers\DataWorker;
 use FastRaven\Components\Data\{Map, ConditionList, Condition, Pair};
 use FastRaven\Types\OperatorType;
 
+// Raw SQL (CAREFUL: No SQL protection provided by the framework from hereon!)
+$result = DataWorker::sql("SELECT * FROM users WHERE id = ?", [$id]);
+
 // Read single row
 $user = DataWorker::selectOneById("users", ["id", "name"], 1);
 $user = DataWorker::selectOneWhere("users", ["*"], ConditionList::new([

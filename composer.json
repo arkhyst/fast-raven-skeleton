@@ -3,8 +3,13 @@
     "description": "Skeleton for FastRaven projects.",
     "type": "project",
     "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Shared\\": "shared/"
+        }
+    },
     "require": {
         "php": "^8.4",
-        "fast-raven/library": "^0.3"
+        "fast-raven/library": "^0.5"
     }
 }

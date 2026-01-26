@@ -82,10 +82,11 @@ if [ -n "$1" ]; then
     mkdir -p "$SITE_PATH/config/env"
     mkdir -p "$SITE_PATH/config/router"
     mkdir -p "$SITE_PATH/src/api"
-    mkdir -p "$SITE_PATH/src/_shared"
-    mkdir -p "$SITE_PATH/src/web/views/pages"
-    mkdir -p "$SITE_PATH/src/web/views/fragments"
-    mkdir -p "$SITE_PATH/src/web/views/mails"
+    mkdir -p "$SITE_PATH/src/cdn"
+    mkdir -p "$SITE_PATH/src/views"
+    mkdir -p "$SITE_PATH/src/web/templates/pages"
+    mkdir -p "$SITE_PATH/src/web/templates/fragments"
+    mkdir -p "$SITE_PATH/src/web/templates/mails"
     mkdir -p "$SITE_PATH/src/web/assets/scss"
     mkdir -p "$SITE_PATH/src/web/assets/js"
     mkdir -p "$SITE_PATH/src/web/assets/fonts"
@@ -102,7 +103,6 @@ if [ -n "$1" ]; then
     # CREATE .gitkeep FILES
     #==========================================================================
         
-    touch "$SITE_PATH/src/_shared/.gitkeep"
     touch "$SITE_PATH/src/web/assets/fonts/.gitkeep"
     touch "$SITE_PATH/src/web/assets/img/.gitkeep"
     touch "$SITE_PATH/public/assets/fonts/.gitkeep"
@@ -151,32 +151,25 @@ EOF
 <?php
 
 declare(strict_types=1);
-require __DIR__ . "/../vendor/autoload.php";
+require __DIR__ . "/../../vendor/autoload.php";
 
 use FastRaven\Server;
 
-// sitePath SHOULD ALWAYS BE __DIR__ unless you know what you are doing. Leave empty for the same value as preload.
-
-// Environment preload.
-Server::preload(__DIR__);
-
-
-// Retrieve configuration, template and routers.
-$config = Server::getConfiguration();
-$template = Server::getTemplate();
-$viewRouter = Server::getViewRouter();
-$apiRouter = Server::getApiRouter();
-
-// Server initialization.
-$server = Server::createInstance();
+// Server initialization. sitePath SHOULD ALWAYS BE __DIR__ unless you know what you are doing.
+$server = Server::initialize(__DIR__);
 
 // Server configuration.
-$server->configure($config, $template, $viewRouter, $apiRouter);
+$server->configure(
+    Server::getConfiguration(),
+    Server::getTemplate(),
+    Server::getMiddleware(),
+    Server::getViewRouter(),
+    Server::getApiRouter(),
+    Server::getCdnRouter()
+);
 
 // This is where the magic happens.
 $server->run();
-
-?>
 EOF
     
     #==========================================================================
@@ -186,23 +179,29 @@ EOF
     # config.php
     cat > "$SITE_PATH/config/config.php" <<'EOF'
 <?php
-use FastRaven\Components\Core\Config;
-use FastRaven\Workers\Bee;
 
-// Main Configuration
+use FastRaven\Components\Core\Config;
+
+// Main Configuration. siteName is not the subdomain.
 $config = Config::new("${SITE_NAME}", false);
 
-// Cookie Session Configuration
+// Cookie Session Configuration.
 $config->configureAuthorization("YOURSESSIONNAME", 7, false);
 
-// Where to redirect if route not found.
-$config->configureNotFoundRedirects("/");
-
-// Where to redirect if not authorized. Leave subdomain empty to use the main domain. DO NOT USE a restricted site.
-$config->configureUnauthorizedRedirects("/", "");
+// Redirect settings: notFound path, unauthorized path, subdomain (empty = main domain)
+$config->configureRedirects("/", "/", "");
 
 // Define whether to register logs or restrict what data to register.
 $config->configurePrivacy(true, true);
+
+// Configure rate-limiting per middleware type (VIEW, API, CDN). -1 = disabled.
+$config->configureRateLimits(200, 200, 200);
+
+// Configure input/file size limits in KB. -1 = disabled.
+$config->configureLengthLimits(256, 5120);
+
+// File-based cache settings. Set gcProbability to 0 to disable framework GC.
+$config->configureCache(1, 50);
 
 return $config;
 EOF
@@ -220,40 +219,56 @@ use FastRaven\Components\Core\Template;
 use FastRaven\Workers\Bee;
 
 // Default template for all views.
-$template = Template::new("Fast Raven Site", Bee::env("VERSION", "0.0.1"), "en");
+$template = Template::new("main.php", "Fast Raven Site", Bee::env("VERSION", "0.0.1"));
+$template->setFavicon("favicon.png")
+         ->setBeforeFragments(["header.php"])
+         ->addStyle("style.css")
+         ->addScript("main.js");
 
 return $template;
+EOF
 
-?>
+    # middleware.php
+    cat > "$SITE_PATH/config/middleware.php" <<'EOF'
+<?php
+
+use FastRaven\Workers\LogWorker;
+
+use FastRaven\Components\Http\Request;
+use FastRaven\Components\Routing\Middleware;
+
+// Create a new middleware holder instance.
+$middleware = Middleware::new();
+
+// Add a new available to use middleware.
+$middleware->add("alwaysPass", function(Request $request): bool {
+    LogWorker::log("This gets executed BEFORE endpoint execution -- Check config/middleware.php to remove this line.");
+    // You can limit it to request types. 
+    // if($request->getType() === EndpointType::API)
+    // Or use Shared methods for more complex operations.
+    // Shared\HelperClass::log("test");
+
+    return true; // Return false to deny request processing
+});
+
+return $middleware;
 EOF
     
     # router/views.php
     cat > "$SITE_PATH/config/router/views.php" <<'EOF'
 <?php
 
-use FastRaven\Components\Core\Template;
 use FastRaven\Components\Routing\Endpoint;
 use FastRaven\Components\Routing\Router;
-use FastRaven\Components\Data\Collection;
-use FastRaven\Components\Data\Item;
 
-// View Router configuration. You can append a template to each view.
-$viewRouter = Router::endpoints([
-    Endpoint::view(false, "/", "main.html"),
-    Endpoint::view(false, "/ping", "ping.html", Template::flex(title: "Ping test", autofill: Collection::new([
-        Item::new("#api-result-span", "/api/ping")
-    ])))
-]);
+use FastRaven\Types\EndpointType;
+
+// View Router configuration. Remember to return a template from each view.
+$viewRouter = Router::new(EndpointType::VIEW)
+    ->add(Endpoint::view(false, "/", "Home.php"))
+    ->add(Endpoint::view(false, "/ping", "Ping.php", "alwaysPass"));
 
 return $viewRouter;
-
-// If router gets to big, use Router::files() instead and refer to config/router folder.
-// $viewRouter = Router::files(Collection::new([
-//     Item::new("/", "main.php"),
-//     Item::new("/admin", "admin.php"),
-// ]));
-
-?>
 EOF
     
     # router/api.php
@@ -263,21 +278,30 @@ EOF
 use FastRaven\Components\Routing\Endpoint;
 use FastRaven\Components\Routing\Router;
 
+use FastRaven\Types\EndpointType;
+
 // API Router configuration. /api/ prefix is automatically added.
-$apiRouter = Router::endpoints([
-    Endpoint::api(false, "GET","/health", "Health.php"),
-    Endpoint::api(false, "GET","/ping", "Pong.php")
-]);
+$apiRouter = Router::new(EndpointType::API)
+    ->add(Endpoint::api(false, "GET", "/health", "Health.php"))
+    ->add(Endpoint::api(false, "GET", "/pong", "Pong.php"));
 
 return $apiRouter;
+EOF
+    
+    # router/cdn.php
+    cat > "$SITE_PATH/config/router/cdn.php" <<'EOF'
+<?php
 
-// If router gets to big, use Router::files() instead and refer to config/router folder.
-// $apiRouter = Router::files(Collection::new([
-//     Item::new("/v1", "main.php"),
-//     Item::new("/v2", "new_version/main.php"),
-// ]));
+use FastRaven\Components\Routing\Endpoint;
+use FastRaven\Components\Routing\Router;
 
-?>
+use FastRaven\Types\EndpointType;
+
+// CDN Router configuration. /cdn/ prefix is automatically added.
+$cdnRouter = Router::new(EndpointType::CDN)
+    ->add(Endpoint::cdn(false, "GET", "/favicon", "Favicon.php"));
+
+return $cdnRouter;
 EOF
     
     #==========================================================================
@@ -301,7 +325,12 @@ DB_NAME=test
 DB_USER=raven
 DB_PASS=secret
 
+DB_SSL=false
+DB_SSL_CA=/path/to/ca.pem
+DB_PERSISTENT=true
+
 SMTP_HOST=smtp.fastraven.loc
+SMTP_ENCRYPTION=tls
 SMTP_PORT=587
 SMTP_USER=raven@fastraven.loc
 SMTP_PASS=secret
@@ -318,7 +347,12 @@ DB_NAME=test
 DB_USER=raven
 DB_PASS=secret
 
+DB_SSL=false
+DB_SSL_CA=/path/to/ca.pem
+DB_PERSISTENT=true
+
 SMTP_HOST=smtp.fastraven.loc
+SMTP_ENCRYPTION=tls
 SMTP_PORT=587
 SMTP_USER=raven@fastraven.loc
 SMTP_PASS=secret
@@ -341,7 +375,12 @@ DB_NAME=test
 DB_USER=raven
 DB_PASS=secret
 
+DB_SSL=false
+DB_SSL_CA=/path/to/ca.pem
+DB_PERSISTENT=true
+
 SMTP_HOST=smtp.fastraven.loc
+SMTP_ENCRYPTION=tls
 SMTP_PORT=587
 SMTP_USER=raven@fastraven.loc
 SMTP_PASS=secret
@@ -358,36 +397,71 @@ DB_NAME=test
 DB_USER=raven
 DB_PASS=secret
 
+DB_SSL=false
+DB_SSL_CA=/path/to/ca.pem
+DB_PERSISTENT=true
+
 SMTP_HOST=smtp.fastraven.loc
+SMTP_ENCRYPTION=tls
 SMTP_PORT=587
 SMTP_USER=raven@fastraven.loc
 SMTP_PASS=secret
 EOF
     
     #==========================================================================
-    # CREATE DEFAULT VIEW
+    # CREATE VIEW HANDLERS
     #==========================================================================
     
-    cat > "$SITE_PATH/src/web/views/pages/main.html" <<'EOF'
-    <h1>Welcome to FastRaven!</h1>
-    <p>Your new site is ready to go.</p>
-    <p>Edit this file at <code>src/web/views/pages/main.html</code></p>
+    # Home.php - View handler for /
+    cat > "$SITE_PATH/src/views/Home.php" <<'EOF'
+<?php
+
+use FastRaven\Components\Core\Template;
+use FastRaven\Components\Http\Request;
+
+return function(Request $request, Template $baseTemplate): Template {
+    $page = Template::new("main.php", $baseTemplate->getTitle());
+    return $page;
+};
 EOF
     
-    # ping.html
-    cat > "$SITE_PATH/src/web/views/pages/ping.html" <<'EOF'
-<h4>PING -> </h4>
-<span id="api-result-span">...</span>
+    # Ping.php - View handler for /ping
+    cat > "$SITE_PATH/src/views/Ping.php" <<'EOF'
+<?php
+
+use FastRaven\Components\Core\Template;
+use FastRaven\Components\Http\Request;
+use FastRaven\Components\Data\Item;
+
+return function(Request $request, Template $baseTemplate): Template {
+    $page = Template::new("ping.php", $baseTemplate->getTitle()." - Ping test");
+    $page->addData(Item::new("test", "This is a test"));
+    return $page;
+};
+EOF
+    
+    #==========================================================================
+    # CREATE DEFAULT TEMPLATE PAGES
+    #==========================================================================
+    
+    cat > "$SITE_PATH/src/web/templates/pages/main.php" <<'EOF'
+<h1>Fast Raven is working hard to launch this site...</h1>
+EOF
+    
+    # ping.php
+    cat > "$SITE_PATH/src/web/templates/pages/ping.php" <<'EOF'
+<h4>PING -> <span data-lang="FR_PING_EXAMPLE"></span></h4>
+<p><?= $template->getData("test"); ?></p>
 EOF
     
     #==========================================================================
     # CREATE DEFAULT FRAGMENTS
     #==========================================================================
     
-    # header.html
-    cat > "$SITE_PATH/src/web/views/fragments/header.html" <<'EOF'
+    # header.php
+    cat > "$SITE_PATH/src/web/templates/fragments/header.php" <<'EOF'
 <div style="display: flex; justify-content: space-between;">
-    <h3>This is a test fragment</h3>
+    <h3>This is a test fragment / </h3>
     <h3>This can be added to templates so it gets reused</h3>
 </div>
 EOF
@@ -396,8 +470,8 @@ EOF
     # CREATE DEFAULT MAIL TEMPLATE
     #==========================================================================
     
-    # welcome.html
-    cat > "$SITE_PATH/src/web/views/mails/welcome.html" <<'EOF'
+    # welcome.php
+    cat > "$SITE_PATH/src/web/templates/mails/welcome.php" <<'EOF'
 <h1>This is a test email</h1>
 <p>Thank you for using Fast Raven!</p>
 EOF
@@ -427,6 +501,21 @@ use FastRaven\Components\Http\Response;
 
 return function(Request $request): Response {
     return Response::new(true, 200, "This should give a little information.", "PONG");
+};
+EOF
+    
+    #==========================================================================
+    # CREATE DEFAULT CDN ENDPOINT
+    #==========================================================================
+    
+    cat > "$SITE_PATH/src/cdn/Favicon.php" <<'EOF'
+<?php
+
+use FastRaven\Components\Http\Request;
+use FastRaven\Components\Http\Response;
+
+return function(Request $request): Response {
+    return Response::file(true, "fast-raven.png");
 };
 EOF
     
@@ -474,8 +563,9 @@ EOF
     echo -e "${YELLOW}Next steps:${NC}"
     echo -e "  1. Add '${SITE_NAME}.local' to /etc/hosts"
     echo -e "  2. Edit configuration in ${SITE_NAME}/config/"
-    echo -e "  3. Add your views in ${SITE_NAME}/src/web/views/pages/"
-    echo -e "  4. Add your API endpoints in ${SITE_NAME}/src/api/"
+    echo -e "  3. Add view handlers in ${SITE_NAME}/src/views/"
+    echo -e "  4. Add templates in ${SITE_NAME}/src/web/templates/"
+    echo -e "  5. Add API endpoints in ${SITE_NAME}/src/api/"
     echo ""
     
     exit 0

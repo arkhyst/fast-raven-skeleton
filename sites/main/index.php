@@ -5,24 +5,18 @@ require __DIR__ . "/../../vendor/autoload.php";
 
 use FastRaven\Server;
 
-// sitePath SHOULD ALWAYS BE __DIR__ unless you know what you are doing. Leave empty for the same value as preload.
-
-// Environment preload.
-Server::preload(__DIR__);
-
-// Retrieve configuration, template and routers.
-$config = Server::getConfiguration();
-$template = Server::getTemplate();
-$viewRouter = Server::getViewRouter();
-$apiRouter = Server::getApiRouter();
-
-// Server initialization.
-$server = Server::createInstance();
+// Server initialization. sitePath SHOULD ALWAYS BE __DIR__ unless you know what you are doing.
+$server = Server::initialize(__DIR__);
 
 // Server configuration.
-$server->configure($config, $template, $viewRouter, $apiRouter);
+$server->configure(
+    Server::getConfiguration(),
+    Server::getTemplate(),
+    Server::getMiddleware(),
+    Server::getViewRouter(),
+    Server::getApiRouter(),
+    Server::getCdnRouter()
+);
 
 // This is where the magic happens.
 $server->run();
-
-?>

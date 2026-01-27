@@ -148,10 +148,10 @@ $config = Config::new("main", false);
 // @param globalAuth - Share auth across subdomains (uses parent domain cookie)
 $config->configureAuthorization("YOURSESSIONNAME", 7, false);
 
-// Redirect settings
-// @param notFoundPath - Path to redirect on 404
-// @param unauthorizedPath - Path to redirect on 401
-// @param unauthorizedSubdomain - Subdomain redirect (empty = main domain)
+// Redirect settings for VIEW endpoints (API/CDN always return error responses)
+// @param notFoundPath - Path to redirect on 404 (null = show custom error page)
+// @param unauthorizedPath - Path to redirect on 401 (null = show custom error page)
+// @param unauthorizedSubdomain - Subdomain redirect on 401 (null = use main domain, "" = empty string for main)
 $config->configureRedirects("/", "/login", "");
 
 // Privacy settings
@@ -211,9 +211,11 @@ return $template;
 | `addScript(filename)` | Add JS file from public/assets/js/ |
 | `setBeforeFragments(array)` | Fragments to render before main content |
 | `setAfterFragments(array)` | Fragments to render after main content |
-| `addData(Item)` | Add data for template rendering |
+| `addData(key, value)` | Add data for template rendering |
 | `getData(key)` | Get data value by key |
 | `hasData(key)` | Check if data key exists |
+| `setErrorFile(code, file)` | Set custom error page for HTTP status code |
+| `getErrorFile(code)` | Get error page file for status code (default: "errors/generic.php") |
 | `merge(?Template)` | Merge another template (overwrites non-empty values) |
 
 ---
@@ -989,8 +991,8 @@ return function(Request $request, Template $baseTemplate): Template {
     $page = Template::new("dashboard.php", "Dashboard");
     
     // Add dynamic data for the template
-    $page->addData(Item::new("username", $user["name"]));
-    $page->addData(Item::new("notifications", $user["notifications"]));
+    $page->addData("username", $user["name"]);
+    $page->addData("notifications", $user["notifications"]);
     
     return $page;
 };
@@ -1134,6 +1136,56 @@ return $adminRouter;
 ---
 
 ## 13. Error Handling
+
+### Custom Error Pages (Views Only)
+
+For VIEW endpoints, you can customize error pages for different HTTP status codes instead of redirecting:
+
+**1. Create error page templates** in `src/web/templates/pages/errors/`:
+
+```php
+<!-- src/web/templates/pages/errors/not-found.php -->
+<div class="error-container">
+    <h1>404 - Page Not Found</h1>
+    <p><?= $template->getData("errorMessage") ?></p>
+    <p>Error Code: <?= $template->getData("errorCode") ?></p>
+    <a href="/">Return Home</a>
+</div>
+```
+
+**2. Configure custom error pages** in `config/template.php`:
+
+```php
+$template = Template::new("main.php", "Fast Raven Site", Bee::env("VERSION", "0.0.1"))
+    ->setErrorFile(404, "errors/not-found.php")
+    ->setErrorFile(401, "errors/unauthorized.php")
+    ->setErrorFile(500, "errors/server-error.php");
+```
+
+**3. Choose between redirects or error pages** in `config/config.php`:
+
+```php
+// Option A: Redirect to paths (traditional behavior)
+$config->configureRedirects("/", "/login", null);
+
+// Option B: Show custom error pages (no redirects)
+$config->configureRedirects(null, null, null);
+
+// Option C: Mix (show 404 page, redirect 401 to login)
+$config->configureRedirects(null, "/login", null);
+```
+
+**Available template data in error pages:**
+- `errorCode` - HTTP status code (e.g., 404, 401, 500)
+- `errorMessage` - Public error message from exception
+
+**Notes:**
+- Error pages only apply to VIEW endpoints (API/CDN always return JSON/file responses)
+- Redirects take precedence over error pages when configured (returns 302 redirect)
+- Default error page is `errors/generic.php` if no custom page is set via `setErrorFile()`
+- Error pages receive the base template
+
+---
 
 ### Throwing Exceptions in Endpoints
 

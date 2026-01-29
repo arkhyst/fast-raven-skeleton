@@ -1,6 +1,7 @@
-# FastRaven Framework Documentation
+# Fast Raven Framework Documentation
 
-**FastRaven** is a lightweight PHP framework for building monolithic applications with clean API/view separation, built-in authentication, database operations, caching, validation, and email.
+**Fast Raven** is a **high-performance PHP** framework for building **fast, monolithic applications**. 
+Optimized for **multi-site subdomain architectures**, it delivers <1ms API responses and makes **agile development** feel effortless. No bloat. No magic. Just speed.
 
 ### Key Features
 
@@ -89,7 +90,7 @@ skeleton/
     │   ├── views/            View endpoint handlers
     │   └── web/
     │       ├── templates/    pages/, fragments/, mails/
-    │       └── assets/       scss/, js/ (compiled via watch.sh)
+    │       └── assets/       scss/, js/ (compiled via compile.sh)
     ├── public/assets/        css/, js/, img/, fonts/ (compiled output)
     ├── storage/              cache/, logs/, uploads/
     └── index.php             Entry point
@@ -398,6 +399,9 @@ SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=mail@example.com
 SMTP_PASS=secret
+
+# Cache
+SHMOP_MAX_SIZE=1024          # Max shmop cache entry size in KB (default: 1024 KB = 1 MB)
 ```
 
 ---

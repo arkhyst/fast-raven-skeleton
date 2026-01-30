@@ -184,7 +184,7 @@ Default template for all views:
 <?php
 
 use FastRaven\Components\Core\Template;
-use FastRaven\Workers\Bee;
+use FastRaven\Bee;
 
 // Default template for all views.
 $template = Template::new("main.php", "Fast Raven Site", Bee::env("VERSION", "0.0.1"));
@@ -413,7 +413,7 @@ Workers are the public API for interacting with framework functionality.
 ### Bee (Utilities)
 
 ```php
-use FastRaven\Workers\Bee;
+use FastRaven\Bee;
 
 // Environment
 $host = Bee::env("DB_HOST", "localhost");  // Get env var with default

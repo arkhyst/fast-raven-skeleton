@@ -1,6 +1,6 @@
 <?php
 
-use FastRaven\Workers\LogWorker;
+use FastRaven\Services\LogService;
 
 use FastRaven\Components\Http\Request;
 use FastRaven\Components\Routing\Middleware;
@@ -10,7 +10,7 @@ $middleware = Middleware::new();
 
 // Add a new available to use middleware.
 $middleware->add("alwaysPass", function(Request $request): bool {
-    LogWorker::log("This gets executed BEFORE endpoint execution -- Check config/middleware.php to remove this line.");
+    LogService::log("This gets executed BEFORE endpoint execution -- Check config/middleware.php to remove this line.");
     // You can limit it to request types. 
     // if($request->getType() === EndpointType::API)
     // Or use Shared methods for more complex operations.

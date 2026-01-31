@@ -63,7 +63,7 @@ graph TD
 1. **Server::initialize()** - Validates skeleton structure, loads `.env` files
 2. **Server::configure()** - Creates Kernel with Config, Template, Middleware, and Routers
 3. **Server::run()** - Main execution loop
-4. **Kernel::open()** - Initializes Request, Workers/Slaves, handles site-level auth
+4. **Kernel::open()** - Initializes Request, Services/Engines, handles site-level auth
 5. **Kernel::process()** - Rate limiting, route matching, middleware execution, endpoint execution
 6. **Kernel::close()** - Sends response, writes logs, garbage collection
 
@@ -204,12 +204,12 @@ return $template;
 |--------|-------------|
 | `new(file, title, version)` | Create new template |
 | `setFile/setTitle/setVersion` | Setters with chaining |
-| `setFavicon(filename)` | Set favicon for both light/dark mode |
-| `setFaviconLight/setFaviconDark(filename)` | Set mode-specific favicons |
+| `setFavicon(favicon)` | Set favicon for both light/dark mode from public/assets/img/ OR external URL (starts with https://) |
+| `setFaviconLight/setFaviconDark(favicon)` | Set mode-specific favicons from public/assets/img/ OR external URL (starts with https://) |
 | `setLangFile(filename)` | Set language CSV file (without .csv extension) |
 | `setDefaultLang(lang)` | Set default language column to use |
-| `addStyle(filename)` | Add CSS file from public/assets/css/ |
-| `addScript(filename)` | Add JS file from public/assets/js/ |
+| `addStyle(style)` | Add CSS file from public/assets/css/ OR external URL (starts with https://) |
+| `addScript(script)` | Add JS file from public/assets/js/ OR external URL (starts with https://) |
 | `setBeforeFragments(array)` | Fragments to render before main content |
 | `setAfterFragments(array)` | Fragments to render after main content |
 | `addData(key, value)` | Add data for template rendering |
@@ -274,7 +274,7 @@ Middleware are reusable functions that can be attached to individual endpoints:
 ```php
 <?php
 
-use FastRaven\Workers\LogWorker;
+use FastRaven\Services\LogService;
 use FastRaven\Components\Http\Request;
 use FastRaven\Components\Routing\Middleware;
 
@@ -283,13 +283,13 @@ $middleware = Middleware::new();
 
 // Add middleware with a unique ID
 $middleware->add("alwaysPass", function(Request $request): bool {
-    LogWorker::log("Middleware executed for request");
+    LogService::log("Middleware executed for request");
     return true; // Return false to deny request (throws MiddlewareDeniedException)
 });
 
 $middleware->add("requireAdmin", function(Request $request): bool {
     // Example: Check if user has admin role
-    // $userId = AuthWorker::getAuthorizedUserId();
+    // $userId = AuthService::getAuthorizedUserId();
     // return $userId && isAdmin($userId);
     return true;
 });
@@ -406,9 +406,9 @@ SHMOP_MAX_SIZE=1024          # Max shmop cache entry size in KB (default: 1024 K
 
 ---
 
-## 5. Workers (Public API)
+## 5. Services (Public API)
 
-Workers are the public API for interacting with framework functionality.
+Services are the public API for interacting with framework functionality.
 
 ### Bee (Utilities)
 
@@ -451,27 +451,27 @@ $key = Bee::getCacheKey("session", "user_1"); // → "fastraven:example.com:sess
 
 ---
 
-### AuthWorker
+### AuthService
 
 ```php
-use FastRaven\Workers\AuthWorker;
+use FastRaven\Services\AuthService;
 
 // Create session
-AuthWorker::createAuthorization($userId, ["role" => "admin"]);
+AuthService::createAuthorization($userId, ["role" => "admin"]);
 
 // Check authorization
-AuthWorker::isAuthorized($request);      // Includes CSRF check for POST/PUT/DELETE/PATCH
-AuthWorker::isAuthorized();              // Session only (no CSRF check)
-$userId = AuthWorker::getAuthorizedUserId();  // int or null
+AuthService::isAuthorized($request);      // Includes CSRF check for POST/PUT/DELETE/PATCH
+AuthService::isAuthorized();              // Session only (no CSRF check)
+$userId = AuthService::getAuthorizedUserId();  // int or null
 
 // Destroy session
-AuthWorker::destroyAuthorization();
+AuthService::destroyAuthorization();
 
 // Regenerate CSRF token (invalidates other tabs)
-$newToken = AuthWorker::regenerateCSRF();
+$newToken = AuthService::regenerateCSRF();
 
 // Auto-login from database
-AuthWorker::autologin(
+AuthService::autologin(
     $username, 
     $password, 
     "users",      // table
@@ -488,26 +488,26 @@ AuthWorker::autologin(
 
 ---
 
-### DataWorker
+### DataService
 
 > ⚠️ Only `Map` values are protected via prepared statements. Never use user input for table/column names.
 
 ```php
-use FastRaven\Workers\DataWorker;
+use FastRaven\Services\DataService;
 use FastRaven\Components\Data\{Map, ConditionList, Condition, Pair};
 use FastRaven\Types\OperatorType;
 
 // Raw SQL (CAREFUL: No SQL protection provided by the framework from hereon!)
-$result = DataWorker::sql("SELECT * FROM users WHERE id = ?", [$id]);
+$result = DataService::sql("SELECT * FROM users WHERE id = ?", [$id]);
 
 // Read single row
-$user = DataWorker::selectOneById("users", ["id", "name"], 1);
-$user = DataWorker::selectOneWhere("users", ["*"], ConditionList::new([
+$user = DataService::selectOneById("users", ["id", "name"], 1);
+$user = DataService::selectOneWhere("users", ["*"], ConditionList::new([
     Condition::email("email", $email)
 ]));
 
 // Read multiple rows
-$users = DataWorker::selectWhere(
+$users = DataService::selectWhere(
     "users", 
     ["id", "name"], 
     ConditionList::new([Condition::equals("active", 1)]),
@@ -515,11 +515,11 @@ $users = DataWorker::selectWhere(
     10,          // limit
     0            // offset
 );
-$allUsers = DataWorker::select("users", ["*"], "created_at DESC", 100, 0);
+$allUsers = DataService::select("users", ["*"], "created_at DESC", 100, 0);
 
 // Joins
 // Simple join
-$join = DataWorker::join(
+$join = DataService::join(
     "users",
     ["orders"],
     Map::new(["users.id" => "orders.user_id"]),
@@ -527,7 +527,7 @@ $join = DataWorker::join(
 );
 
 // Join with WHERE clauses
-$joinFiltered = DataWorker::joinWhere(
+$joinFiltered = DataService::joinWhere(
     "users",
     ["orders"],
     Map::new(["users.id" => "orders.user_id"]),
@@ -536,49 +536,49 @@ $joinFiltered = DataWorker::joinWhere(
 );
 
 // Insert
-DataWorker::insert("users", Map::new([
+DataService::insert("users", Map::new([
     "name" => "John",
     "email" => "john@example.com"
 ]));
-$id = DataWorker::getLastInsertId();
+$id = DataService::getLastInsertId();
 
 // Batch insert (single transaction)
-DataWorker::insertBatch("logs", [
+DataService::insertBatch("logs", [
     Map::new(["action" => "login"]),
     Map::new(["action" => "logout"])
 ]);
 
 // Update
-DataWorker::updateById("users", 1, Map::new([
+DataService::updateById("users", 1, Map::new([
     "name" => "Jane"
 ]));
-DataWorker::updateWhere("users", 
+DataService::updateWhere("users", 
     Map::new(["active" => 0]),
     ConditionList::new([Condition::equals("old", 1)])
 );
 
 // Delete
-DataWorker::deleteById("users", 1);
-DataWorker::deleteWhere("users", ConditionList::new([Condition::equals("expired", 1)]));
+DataService::deleteById("users", 1);
+DataService::deleteWhere("users", ConditionList::new([Condition::equals("expired", 1)]));
 
 // Count/Exists
-$count = DataWorker::count("users", ConditionList::new([Condition::equals("active", 1)]));
-$exists = DataWorker::existsById("users", 1);
+$count = DataService::count("users", ConditionList::new([Condition::equals("active", 1)]));
+$exists = DataService::existsById("users", 1);
 ```
 
 ---
 
-### ValidationWorker
+### ValidationService
 
 ```php
-use FastRaven\Workers\ValidationWorker;
+use FastRaven\Services\ValidationService;
 use FastRaven\Components\Data\ValidationFlags;
 
 // Email validation
-ValidationWorker::email($email);  // Uses filter_var
+ValidationService::email($email);  // Uses filter_var
 
 // String validation (replaces username, password, etc.)
-ValidationWorker::string($text, [
+ValidationService::string($text, [
     ValidationType::MIN_LENGTH->value => 8,
     ValidationType::MAX_LENGTH->value => 128,
     ValidationType::MIN_DIGITS->value => 1,
@@ -588,76 +588,76 @@ ValidationWorker::string($text, [
 ]);
 
 // Number validation (replaces age, etc.)
-ValidationWorker::number($age, [
+ValidationService::number($age, [
     ValidationType::MIN_NUMBER->value => 18,
     ValidationType::MAX_NUMBER->value => 120
 ]);
 
 // Phone validation
-ValidationWorker::phone($countryCode, $phone);  // 7-15 chars, code 1-999
+ValidationService::phone($countryCode, $phone);  // 7-15 chars, code 1-999
 ```
 
 ---
 
-### CacheWorker
+### CacheService
 
 Automatically selects best backend: APCu → shmop → file.
 
 ```php
-use FastRaven\Workers\CacheWorker;
+use FastRaven\Services\CacheService;
 
-CacheWorker::write("key", $value, 3600);  // TTL in seconds
-$value = CacheWorker::read("key");        // null if expired/missing
-CacheWorker::remove("key");
-CacheWorker::increment("counter", 1);     // Atomic increment
-CacheWorker::empty();                     // Clear all cache
+CacheService::write("key", $value, 3600);  // TTL in seconds
+$value = CacheService::read("key");        // null if expired/missing
+CacheService::remove("key");
+CacheService::increment("counter", 1);     // Atomic increment
+CacheService::empty();                     // Clear all cache
 ```
 
 ---
 
-### FileWorker
+### FileService
 
 Manages files in `storage/uploads/`.
 
 ```php
-use FastRaven\Workers\FileWorker;
+use FastRaven\Services\FileService;
 
 // Upload (from Request)
 $file = $request->file("avatar");  // Returns File object
-FileWorker::upload($file, "avatars/user_123.jpg");
+FileService::upload($file, "avatars/user_123.jpg");
 
 // Read/Check/Delete
-$content = FileWorker::read("documents/file.txt");
-$exists = FileWorker::exists("path/to/file");
-FileWorker::delete("path/to/file");
+$content = FileService::read("documents/file.txt");
+$exists = FileService::exists("path/to/file");
+FileService::delete("path/to/file");
 
 // Get full path
-$fullPath = FileWorker::getUploadFilePath("path/to/file");
+$fullPath = FileService::getUploadFilePath("path/to/file");
 ```
 
 ---
 
-### LogWorker
+### LogService
 
 Logs to `storage/logs/YYYY-MM-DD.log`.
 
 ```php
-use FastRaven\Workers\LogWorker;
+use FastRaven\Services\LogService;
 
-LogWorker::log("User logged in");        // Normal log
-LogWorker::warning("Invalid input");     // //WARN// prefix
-LogWorker::error("Database failed");     // //ERROR// prefix
-LogWorker::debug("Debug info");          // /SG/ prefix, dev only
+LogService::log("User logged in");        // Normal log
+LogService::warning("Invalid input");     // //WARN// prefix
+LogService::error("Database failed");     // //ERROR// prefix
+LogService::debug("Debug info");          // /SG/ prefix, dev only
 ```
 
 ---
 
-### MailWorker
+### MailService
 
 Sends emails using PHPMailer with SMTP. Configure SMTP settings in `.env`.
 
 ```php
-use FastRaven\Workers\MailWorker;
+use FastRaven\Services\MailService;
 use FastRaven\Components\Core\Mail;
 use FastRaven\Components\Data\{Map, Pair};
 
@@ -687,11 +687,11 @@ $mail->setAttachments(Map::new([
 $mail->setTimeout(5000);
 
 // Send synchronously - blocks until sent, returns success/failure
-MailWorker::send($mail);
+MailService::send($mail);
 
 // Send async (fire-and-forget) - queued, sent after response
 // Use for notifications that don't need confirmation
-MailWorker::send($mail, true);
+MailService::send($mail, true);
 ```
 
 **Sending Modes:**
@@ -710,13 +710,13 @@ Fire-and-forget emails are processed after `fastcgi_finish_request()`, so the us
 
 ---
 
-### HeaderWorker
+### HeaderService
 
 ```php
-use FastRaven\Workers\HeaderWorker;
+use FastRaven\Services\HeaderService;
 
-HeaderWorker::addHeader("X-Custom", "value");
-HeaderWorker::removeHeader("X-Custom");
+HeaderService::addHeader("X-Custom", "value");
+HeaderService::removeHeader("X-Custom");
 ```
 
 **Auto-set security headers:** CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy.
@@ -814,15 +814,15 @@ $file->getPath();       // Temporary path (e.g., /tmp/phpXXXX)
 $file->getName();       // Original filename (e.g., "photo.jpg")
 $file->getExtension();  // File extension (e.g., "jpg")
 
-// Usage with FileWorker
-FileWorker::upload($file, "avatars/" . $file->getName());
+// Usage with FileService
+FileService::upload($file, "avatars/" . $file->getName());
 ```
 
 ---
 
 ### Mail
 
-Email configuration for MailWorker:
+Email configuration for MailService:
 
 ```php
 use FastRaven\Components\Core\Mail;
@@ -862,7 +862,7 @@ Use `ValidationType` enum values as keys for configuration arrays:
 
 ```php
 use FastRaven\Types\ValidationType;
-use FastRaven\Workers\ValidationWorker;
+use FastRaven\Services\ValidationService;
 
 // String flags
 $flags = [
@@ -880,9 +880,9 @@ $numberFlags = [
     ValidationType::MAX_NUMBER->value => 120   // Default: 255
 ];
 
-// Usage with ValidationWorker:
+// Usage with ValidationService:
 $details = [];
-if (!ValidationWorker::string($pass, [
+if (!ValidationService::string($pass, [
     ValidationType::MIN_LENGTH->value => 8, 
     ValidationType::MIN_DIGITS->value => 1, 
     ValidationType::MIN_SPECIAL->value => 1
@@ -990,13 +990,13 @@ View endpoints now use PHP handler files that return a `Template` object:
 use FastRaven\Components\Core\Template;
 use FastRaven\Components\Http\Request;
 use FastRaven\Components\Data\Item;
-use FastRaven\Workers\AuthWorker;
-use FastRaven\Workers\DataWorker;
+use FastRaven\Services\AuthService;
+use FastRaven\Services\DataService;
 
 return function(Request $request, Template $baseTemplate): Template {
     // Get user data
-    $userId = AuthWorker::getAuthorizedUserId();
-    $user = DataWorker::selectOneById("users", ["name", "notifications"], $userId);
+    $userId = AuthService::getAuthorizedUserId();
+    $user = DataService::selectOneById("users", ["name", "notifications"], $userId);
     
     // Create page-specific template
     $page = Template::new("dashboard.php", "Dashboard");
@@ -1031,13 +1031,13 @@ Complete example of an API endpoint:
 // src/api/user/Update.php
 
 use FastRaven\Components\Http\{Request, Response};
-use FastRaven\Workers\{AuthWorker, DataWorker, ValidationWorker};
+use FastRaven\Services\{AuthService, DataService, ValidationService};
 use FastRaven\Components\Data\{Collection, Item, ValidationFlags};
 use FastRaven\Types\SanitizeType;
 
 return function(Request $request): Response {
     // Get authenticated user
-    $userId = AuthWorker::getAuthorizedUserId();
+    $userId = AuthService::getAuthorizedUserId();
     if (!$userId) {
         return Response::new(false, 401, "Not authorized");
     }
@@ -1047,15 +1047,15 @@ return function(Request $request): Response {
     $email = $request->post("email", SanitizeType::SAFE);
     
     // Validate input
-    if (!ValidationWorker::username($name, ValidationFlags::username(3, 50))) {
+    if (!ValidationService::username($name, ValidationFlags::username(3, 50))) {
         return Response::new(false, 400, "Invalid name");
     }
-    if (!ValidationWorker::email($email)) {
+    if (!ValidationService::email($email)) {
         return Response::new(false, 400, "Invalid email");
     }
     
     // Check if email already exists
-    $existing = DataWorker::selectOneWhere("users", ["id"], Collection::new([
+    $existing = DataService::selectOneWhere("users", ["id"], Collection::new([
         Item::new("email", $email)
     ]));
     if ($existing && $existing["id"] !== $userId) {
@@ -1063,7 +1063,7 @@ return function(Request $request): Response {
     }
     
     // Update user
-    DataWorker::updateById("users", $userId, Collection::new([
+    DataService::updateById("users", $userId, Collection::new([
         Item::new("name", $name),
         Item::new("email", $email)
     ]));
@@ -1083,7 +1083,7 @@ CDN endpoints serve files (images, documents, etc.) from storage:
 // src/cdn/Avatar.php
 
 use FastRaven\Components\Http\{Request, Response};
-use FastRaven\Workers\FileWorker;
+use FastRaven\Services\FileService;
 
 return function(Request $request): Response {
     $userId = $request->get("id", SanitizeType::ONLY_ALPHA);
@@ -1094,7 +1094,7 @@ return function(Request $request): Response {
     
     $avatarPath = "avatars/user_{$userId}.jpg";
     
-    if (!FileWorker::exists($avatarPath)) {
+    if (!FileService::exists($avatarPath)) {
         return Response::file(true, "avatars/default.jpg");
     }
     
@@ -1208,13 +1208,13 @@ return function(Request $request): Response {
     $id = $request->post("id", SanitizeType::ONLY_ALPHA);
     
     // 404 - Resource not found
-    $item = DataWorker::selectOneById("items", ["*"], intval($id));
+    $item = DataService::selectOneById("items", ["*"], intval($id));
     if (!$item) {
         throw new NotFoundException();
     }
     
     // 401 - Not authorized (redirects to login for views)
-    if ($item["owner_id"] !== AuthWorker::getAuthorizedUserId()) {
+    if ($item["owner_id"] !== AuthService::getAuthorizedUserId()) {
         throw new NotAuthorizedException();
     }
     
@@ -1233,7 +1233,7 @@ For API endpoints, return Response objects instead of throwing exceptions:
 
 ```php
 return function(Request $request): Response {
-    $userId = AuthWorker::getAuthorizedUserId();
+    $userId = AuthService::getAuthorizedUserId();
     if (!$userId) {
         return Response::new(false, 401, "Please log in to continue");
     }
@@ -1294,7 +1294,7 @@ return function(Request $request): Response {
         return Response::new(false, 400, "No file uploaded");
     }
     
-    FileWorker::upload($file, "avatars/" . $file->getName());
+    FileService::upload($file, "avatars/" . $file->getName());
     return Response::new(true, 200, "Uploaded");
 };
 ```
@@ -1335,17 +1335,17 @@ framework/src/
 │   ├── Http/             Request, Response
 │   └── Routing/          Router, Endpoint, Middleware
 ├── Exceptions/           # SmartException and 11 subclasses
-├── Internal/             # Kernel, Slaves (not for direct use)
-├── Workers/              # Public API (9 workers)
-│   ├── AuthWorker.php
+├── Internals/             # Kernel, Engines (not for direct use)
+├── Services/              # Public API (9 workers)
+│   ├── AuthService.php
 │   ├── Bee.php
-│   ├── CacheWorker.php
-│   ├── DataWorker.php
-│   ├── FileWorker.php
-│   ├── HeaderWorker.php
-│   ├── LogWorker.php
-│   ├── MailWorker.php
-│   └── ValidationWorker.php
+│   ├── CacheService.php
+│   ├── DataService.php
+│   ├── FileService.php
+│   ├── HeaderService.php
+│   ├── LogService.php
+│   ├── MailService.php
+│   └── ValidationService.php
 ├── Types/                # Enums (6 types)
 └── Server.php            # Entry point
 ```

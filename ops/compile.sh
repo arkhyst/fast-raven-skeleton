@@ -51,7 +51,7 @@ for proj in "${SITES[@]}"; do
         javascript-obfuscator "$JS_SRC" --output "$JS_DEST" --compact true --self-defending true > /dev/null 2>&1 || true
     fi
 
-    FW_VIEW_SRC="vendor/fast-raven/library/framework/src/Internals/View/src"
+    FW_VIEW_SRC="vendor/fast-raven/library/src/Internals/View/src"
     FW_CSS_DEST="sites/$proj/public/assets/css"
     FW_JS_DEST="sites/$proj/public/assets/js"
 

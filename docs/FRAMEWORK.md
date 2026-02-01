@@ -1,25 +1,22 @@
 # Fast Raven Framework Documentation
 
 **Fast Raven** is a **high-performance PHP** framework for building **fast, monolithic applications**. 
-Optimized for **multi-site subdomain architectures**, it delivers <1ms API responses and makes **agile development** feel effortless. No bloat. No magic. Just speed.
+Optimized for **multi-site subdomain architectures**, it processes requests in 1ms (average speed in shared hosting) and makes **agile development** feel effortless. No bloat. No magic. Just speed.
 
 ### Key Features
 
-| Feature | Description |
-|---------|-------------|
-| 🚀 Fast & Fluent | Zero-config setup, chainable methods, minimal overhead |
-| 🔒 Security | CSRF protection, session management, CSP, HSTS |
-| 🛣️ Routing | O(1) hash map lookup, separate API/View/CDN routers |
-| 🔐 Auth | Session-based with automatic CSRF validation |
-| 📊 Database | PDO with prepared statements, SQL injection protection |
-| ⚡ Caching | APCu → shmop → file fallback with auto-selection |
-| 🎨 Templates | Fragments, data passing, asset versioning |
-| 🌐 i18n | CSV-based translations with dynamic language switching |
-| 🎯 Middlewares | Per-endpoint request control |
-| ✅ Validation | Email, password, username, age, phone |
-| 📧 Email | PHPMailer with templates and attachments |
-| 📁 Files | Secure uploads with MIME validation via magic bytes |
-| 📝 Logging | Request logging with debug/warn/error levels |
+- **🚀 Fast & Fluent**: Zero-config setup, chainable methods, and minimal overhead for lightning speed.
+- **🔒 Security**: Built-in CSRF protection, secure session management, strict CSP with nonces, and automated HSTS headers.
+- **🛣️ Routing**: High-speed O(1) hash map lookup with segregated API, View, and CDN routers.
+- **🔐 Auth**: Robust session-based authentication with automatic CSRF validation.
+- **📊 Database**: PDO wrapper with prepared statements for ironclad SQL injection protection.
+- **⚡ Caching**: Smart caching layer (APCu → shmop → file) with automatic fallback selection.
+- **🎨 Templates**: Powerful template engine with view fragments, dynamic data passing, and asset versioning.
+- **🌐 i18n**: Simple CSV-based translations with dynamic language switching per user preference.
+- **🎯 Middlewares**: Granular per-endpoint request control for advanced flow management.
+- **📧 Email**: Integrated PHPMailer support with HTML templates and easy attachment handling.
+- **📁 Files**: Secure file management with MIME validation via magic bytes and upload limits.
+- **📝 Logging**: Comprehensive request logging with distinctive debug, warning, and error levels.
 
 ---
 

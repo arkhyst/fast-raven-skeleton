@@ -226,6 +226,7 @@ return $template;
 | `hasData(key)` | Check if data key exists |
 | `setErrorFile(code, file)` | Set custom error page for HTTP status code |
 | `getErrorFile(code)` | Get error page file for status code (default: "errors/generic.php") |
+| `getNonce()` | Get CSP nonce for inline scripts |
 | `merge(?Template)` | Merge another template (overwrites non-empty values) |
 
 ---
@@ -1037,6 +1038,11 @@ return function(Request $request, Template $baseTemplate): Template {
 ```php
 <h1>Welcome, <?= $template->getData("username") ?></h1>
 <p>You have <?= $template->getData("notifications") ?> notifications</p>
+
+<!-- Inline script with nonce -->
+<script nonce="<?= $template->getNonce() ?>">
+    console.log("Dashboard loaded");
+</script>
 ```
 
 **Handler Signature:**

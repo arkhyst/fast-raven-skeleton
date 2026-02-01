@@ -51,6 +51,22 @@ for proj in "${SITES[@]}"; do
         javascript-obfuscator "$JS_SRC" --output "$JS_DEST" --compact true --self-defending true > /dev/null 2>&1 || true
     fi
 
+    FW_VIEW_SRC="vendor/fast-raven/library/framework/src/Internals/View/src"
+    FW_CSS_DEST="sites/$proj/public/assets/css"
+    FW_JS_DEST="sites/$proj/public/assets/js"
+
+    if [ -f "$FW_VIEW_SRC/style.scss" ]; then
+        sass "$FW_VIEW_SRC/style.scss":"$FW_CSS_DEST/base.css" --style=compressed --update
+    fi
+
+    if [ -f "$FW_VIEW_SRC/jquery.min.js" ]; then
+        cp "$FW_VIEW_SRC/jquery.min.js" "$FW_JS_DEST/jquery.min.js"
+    fi
+
+    if [ -f "$FW_VIEW_SRC/lib.js" ]; then
+        javascript-obfuscator "$FW_VIEW_SRC/lib.js" --output "$FW_JS_DEST/lib.js" --compact true --self-defending true > /dev/null 2>&1 || true
+    fi
+
     echo "Compilation complete."
 
     if [ "$WATCH" = true ]; then

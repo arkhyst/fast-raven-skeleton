@@ -106,14 +106,15 @@ EOF
 
 cat > "$SITE_PATH/index.php" <<'EOF'
 <?php
-
 declare(strict_types=1);
-require __DIR__ . "/../../vendor/autoload.php";
 
+$startRequestTime = microtime(true);
+
+require __DIR__ . "/../../vendor/autoload.php";
 use FastRaven\Server;
 
 // Server initialization. sitePath SHOULD ALWAYS BE __DIR__ unless you know what you are doing.
-$server = Server::initialize(__DIR__);
+$server = Server::initialize(__DIR__, $startRequestTime);
 
 // Server configuration.
 $server->configure(
@@ -250,38 +251,72 @@ $cdnRouter = Router::new(EndpointType::CDN)
 return $cdnRouter;
 EOF
 
-COMMON_ENV_VARS=$(cat <<'EOF'
-SITE_ADDRESS=fastraven.loc
-AUTH_DOMAIN=.fastraven.loc
+ENV_CONTENT=$(cat <<'EOF'
+<?php
 
-DB_HOST=localhost
+use FastRaven\Bee;
 
-DB_NAME=test
-DB_USER=raven
-DB_PASS=secret
+Bee::defineEnv("STATE", "dev");
+Bee::defineEnv("VERSION", "0.0.1");
 
-DB_SSL=false
-DB_SSL_CA=/path/to/ca.pem
-DB_PERSISTENT=true
+// VARIABLES FOR DEVELOPMENT
+if(Bee::isDev()) {
+    // Globals
+    Bee::defineEnv("SITE_ADDRESS", "fastraven.loc");
+    Bee::defineEnv("AUTH_DOMAIN", ".fastraven.loc");
 
-SMTP_HOST=smtp.fastraven.loc
-SMTP_ENCRYPTION=tls
-SMTP_PORT=587
-SMTP_USER=raven@fastraven.loc
-SMTP_PASS=secret
+    // Database
+    Bee::defineEnv("DB_HOST", "localhost");
+    Bee::defineEnv("DB_PORT", "3306");
+    Bee::defineEnv("DB_NAME", "test");
+    Bee::defineEnv("DB_USER", "raven");
+    Bee::defineEnv("DB_PASS", "secret");
+    Bee::defineEnv("DB_SSL", "false");
+    Bee::defineEnv("DB_SSL_CA", "/path/to/ca.pem");
+    Bee::defineEnv("DB_PERSISTENT", "true");
 
-SHMOP_MAX_SIZE=1024 # In KB
+    // SMTP
+    Bee::defineEnv("SMTP_HOST", "smtp.fastraven.loc");
+    Bee::defineEnv("SMTP_ENCRYPTION", "tls");
+    Bee::defineEnv("SMTP_PORT", "587");
+    Bee::defineEnv("SMTP_USER", "raven@fastraven.loc");
+    Bee::defineEnv("SMTP_PASS", "secret");
+
+    // SHMOP
+    Bee::defineEnv("SHMOP_MAX_SIZE", "1024"); // In KB
+}
+
+// VARIABLES FOR PRODUCTION
+else {
+    // Globals
+    Bee::defineEnv("SITE_ADDRESS", "fastraven.loc");
+    Bee::defineEnv("AUTH_DOMAIN", ".fastraven.loc");
+
+    // Database
+    Bee::defineEnv("DB_HOST", "localhost");
+    Bee::defineEnv("DB_PORT", "3306");
+    Bee::defineEnv("DB_NAME", "test");
+    Bee::defineEnv("DB_USER", "raven");
+    Bee::defineEnv("DB_PASS", "secret");
+    Bee::defineEnv("DB_SSL", "false");
+    Bee::defineEnv("DB_SSL_CA", "/path/to/ca.pem");
+    Bee::defineEnv("DB_PERSISTENT", "true");
+
+    // SMTP
+    Bee::defineEnv("SMTP_HOST", "smtp.fastraven.loc");
+    Bee::defineEnv("SMTP_ENCRYPTION", "tls");
+    Bee::defineEnv("SMTP_PORT", "587");
+    Bee::defineEnv("SMTP_USER", "raven@fastraven.loc");
+    Bee::defineEnv("SMTP_PASS", "secret");
+
+    // SHMOP
+    Bee::defineEnv("SHMOP_MAX_SIZE", "1024"); // In KB
+}
 EOF
 )
 
-echo "STATE=dev
-VERSION=0.0.1" > "$SITE_PATH/config/env/.env-example"
-echo "$COMMON_ENV_VARS" > "$SITE_PATH/config/env/.env.dev-example"
-echo "$COMMON_ENV_VARS" > "$SITE_PATH/config/env/.env.prod-example"
-echo "STATE=dev
-VERSION=0.0.1" > "$SITE_PATH/config/env/.env"
-echo "$COMMON_ENV_VARS" > "$SITE_PATH/config/env/.env.dev"
-echo "$COMMON_ENV_VARS" > "$SITE_PATH/config/env/.env.prod"
+echo "$ENV_CONTENT" > "$SITE_PATH/config/env/env.php"
+echo "$ENV_CONTENT" > "$SITE_PATH/config/env/env.php-example"
 
 cat > "$SITE_PATH/src/views/Home.php" <<'EOF'
 <?php

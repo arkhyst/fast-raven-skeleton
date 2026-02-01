@@ -1,12 +1,13 @@
 <?php
-
 declare(strict_types=1);
-require __DIR__ . "/../../vendor/autoload.php";
 
+$startRequestTime = microtime(true);
+
+require __DIR__ . "/../../vendor/autoload.php";
 use FastRaven\Server;
 
 // Server initialization. sitePath SHOULD ALWAYS BE __DIR__ unless you know what you are doing.
-$server = Server::initialize(__DIR__);
+$server = Server::initialize(__DIR__, $startRequestTime);
 
 // Server configuration.
 $server->configure(

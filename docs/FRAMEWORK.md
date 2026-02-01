@@ -79,7 +79,7 @@ skeleton/
 ├── shared/                   Shared classes (Shared\ namespace)
 └── sites/main/
     ├── config/
-    │   ├── env/              .env, .env.dev, .env.prod
+    │   ├── env/              env.php, env.php-example
     │   ├── router/           views.php, api.php, cdn.php
     │   ├── config.php        Main configuration
     │   ├── template.php      Default template
@@ -108,12 +108,17 @@ The entry point initializes the server, configures it, and starts processing:
 <?php
 
 declare(strict_types=1);
+
+$startRequestTime = microtime(true);
+
 require __DIR__ . "/../../vendor/autoload.php";
 
 use FastRaven\Server;
 
 // Server initialization. sitePath SHOULD ALWAYS BE __DIR__
-$server = Server::initialize(__DIR__);
+// Pass $startRequestTime to include autoloading in performance metrics.
+// Omit it (or pass null) to calculate time starting from framework initialization.
+$server = Server::initialize(__DIR__, $startRequestTime);
 
 // Server configuration
 $server->configure(
@@ -177,6 +182,10 @@ return $config;
 ---
 
 ### template.php
+
+> [!IMPORTANT]
+> **Asset Compilation Required**
+> Fast Raven uses compiled assets for high performance. After modifying SCSS/JS in `src/web/assets` or updating the framework, you **MUST** run `./ops/compile.sh` to generate the production-ready files in `public/assets`.
 
 Default template for all views:
 
@@ -377,32 +386,46 @@ return $cdnRouter;
 
 ## 4. Environment Variables
 
-```bash
-# .env (shared across environments)
-STATE=dev                    # "dev" or "prod"
-VERSION=1.0.0
+Environment variables are defined in `config/env/env.php` using the `Bee::defineEnv()` method.
 
-# .env.dev / .env.prod (environment-specific)
-SITE_ADDRESS=example.com     # Base domain
-AUTH_DOMAIN=.example.com     # Cookie domain (with leading dot for subdomains)
+```php
+<?php
 
-# Database
-DB_HOST=localhost
-DB_NAME=app
-DB_USER=root
-DB_PASS=secret
-DB_PERSISTENT=true           # Use persistent connections
-DB_SSL=false                 # Enable SSL for DB connection
+use FastRaven\Bee;
 
-# Email (PHPMailer)
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USER=mail@example.com
-SMTP_PASS=secret
+Bee::defineEnv("STATE", "dev"); // "dev" or "prod"
+Bee::defineEnv("VERSION", "1.0.0");
 
-# Cache
-SHMOP_MAX_SIZE=1024          # Max shmop cache entry size in KB (default: 1024 KB = 1 MB)
+if(Bee::isDev()) {
+    // Development Variables
+    Bee::defineEnv("SITE_ADDRESS", "fastraven.loc");
+    Bee::defineEnv("AUTH_DOMAIN", ".fastraven.loc");
+    
+    // Database
+    Bee::defineEnv("DB_HOST", "localhost");
+    Bee::defineEnv("DB_PORT", "3306");
+    Bee::defineEnv("DB_NAME", "test");
+    Bee::defineEnv("DB_USER", "raven");
+    Bee::defineEnv("DB_PASS", "secret");
+    
+    // ... other dev vars
+} else {
+    // Production Variables
+    Bee::defineEnv("SITE_ADDRESS", "example.com");
+    // ...
+}
 ```
+
+**Common Variables:**
+- `STATE`: "dev" or "prod"
+- `VERSION`: Application version (used for cache busting)
+- `SITE_ADDRESS`: Base domain
+- `AUTH_DOMAIN`: Cookie domain
+- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`: Database credentials
+- `DB_PERSISTENT`: "true" or "false"
+- `DB_SSL`: "true" or "false"
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`: Mail credentials
+- `SHMOP_MAX_SIZE`: Max shared memory cache size in KB
 
 ---
 
@@ -417,6 +440,7 @@ use FastRaven\Bee;
 
 // Environment
 $host = Bee::env("DB_HOST", "localhost");  // Get env var with default
+Bee::defineEnv("MY_VAR", "value");         // Set env var (used in env.php)
 $isDev = Bee::isDev();                     // Check if STATE === "dev"
 
 // Paths
@@ -1336,9 +1360,8 @@ framework/src/
 │   └── Routing/          Router, Endpoint, Middleware
 ├── Exceptions/           # SmartException and 11 subclasses
 ├── Internals/             # Kernel, Engines (not for direct use)
-├── Services/              # Public API (9 workers)
+├── Services/              # Public API (9 services)
 │   ├── AuthService.php
-│   ├── Bee.php
 │   ├── CacheService.php
 │   ├── DataService.php
 │   ├── FileService.php
@@ -1347,6 +1370,7 @@ framework/src/
 │   ├── MailService.php
 │   └── ValidationService.php
 ├── Types/                # Enums (6 types)
+├── Bee.php               # Utilities
 └── Server.php            # Entry point
 ```
 

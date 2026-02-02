@@ -43,7 +43,7 @@ for proj in "${SITES[@]}"; do
 
     if [ -d "$SCSS_SRC" ]; then
         if ls "$SCSS_SRC"/*.scss 1> /dev/null 2>&1; then
-            sass "$SCSS_SRC":"$CSS_DEST" --style=compressed --update
+            sass "$SCSS_SRC":"$CSS_DEST" --style=compressed --update --no-source-map
         fi
     fi
 
@@ -56,7 +56,7 @@ for proj in "${SITES[@]}"; do
     FW_JS_DEST="sites/$proj/public/assets/js"
 
     if [ -f "$FW_VIEW_SRC/style.scss" ]; then
-        sass "$FW_VIEW_SRC/style.scss":"$FW_CSS_DEST/base.css" --style=compressed --update
+        sass "$FW_VIEW_SRC/style.scss":"$FW_CSS_DEST/base.css" --style=compressed --update --no-source-map
     fi
 
     if [ -f "$FW_VIEW_SRC/jquery.min.js" ]; then
@@ -70,7 +70,7 @@ for proj in "${SITES[@]}"; do
     echo "Compilation complete."
 
     if [ "$WATCH" = true ]; then
-        sass --watch "$SCSS_SRC":"$CSS_DEST" --style=compressed &
+        sass --watch "$SCSS_SRC":"$CSS_DEST" --style=compressed --no-source-map &
         pids+=($!)
         
         chokidar "$JS_SRC/*.js" -c "javascript-obfuscator $JS_SRC --output $JS_DEST --compact true --self-defending true > /dev/null 2>&1" &

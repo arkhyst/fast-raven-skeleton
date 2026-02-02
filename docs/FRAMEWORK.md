@@ -1,22 +1,22 @@
 # Fast Raven Framework Documentation
 
-**Fast Raven** is a **high-performance PHP** framework for building **fast, monolithic applications**. 
-Optimized for **multi-site subdomain architectures**, it processes requests in 1ms (average speed in shared hosting) and makes **agile development** feel effortless. No bloat. No magic. Just speed.
+**Fast Raven** is a **high-performance PHP** framework for building **fast, monolithic applications**. Optimized for **subdomain architectures**, it processes requests in **1ms** (average speed in shared hosting) while allowing fast-paced and easy development. No bloat. No magic. Just speed.
 
 ### Key Features
 
-- **🚀 Fast & Fluent**: Zero-config setup, chainable methods, and minimal overhead for lightning speed.
+- **⚡ Performance**: Built for speed and efficiency.
+- **🚀 Easy to use**: Zero-config setup, chainable methods, and one-file endpoints.
 - **🔒 Security**: Built-in CSRF protection, secure session management, strict CSP with nonces, and automated HSTS headers.
 - **🛣️ Routing**: High-speed O(1) hash map lookup with segregated API, View, and CDN routers.
+- **🎯 Middlewares**: Granular per-endpoint request control for advanced flow management.
 - **🔐 Auth**: Robust session-based authentication with automatic CSRF validation.
 - **📊 Database**: PDO wrapper with prepared statements for ironclad SQL injection protection.
-- **⚡ Caching**: Smart caching layer (APCu → shmop → file) with automatic fallback selection.
 - **🎨 Templates**: Powerful template engine with view fragments, dynamic data passing, and asset versioning.
 - **🌐 i18n**: Simple CSV-based translations with dynamic language switching per user preference.
-- **🎯 Middlewares**: Granular per-endpoint request control for advanced flow management.
 - **📧 Email**: Integrated PHPMailer support with HTML templates and easy attachment handling.
 - **📁 Files**: Secure file management with MIME validation via magic bytes and upload limits.
-- **📝 Logging**: Comprehensive request logging with distinctive debug, warning, and error levels.
+- **♻️ Caching**: Smart caching layer (APCu → shmop → file) with automatic fallback selection.
+- **📝 Logging**: Comprehensive request logging with useful data in one-line format.
 
 ---
 

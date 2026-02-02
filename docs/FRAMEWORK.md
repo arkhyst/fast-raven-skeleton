@@ -2,6 +2,7 @@
 
 **Fast Raven** is a **high-performance PHP** framework for building **fast, monolithic applications**. Optimized for **subdomain architectures**, it processes requests in **1ms** (average speed in shared hosting) while allowing fast-paced and easy development. No bloat. No magic. Just speed.
 
+## 0. Introduction
 ### Key Features
 
 - **⚡ Performance**: Built for speed and efficiency.
@@ -17,6 +18,22 @@
 - **📁 Files**: Secure file management with MIME validation via magic bytes and upload limits.
 - **♻️ Caching**: Smart caching layer (APCu → shmop → file) with automatic fallback selection.
 - **📝 Logging**: Comprehensive request logging with useful data in one-line format.
+
+### Installation
+#### Requirements
+- **PHP** ^8.4
+- **MySQL** ^8.0
+- **Composer** ^2.9.2
+- **Apache** ^2.4 (or Nginx/IIS with appropriate config)
+
+> **Pro Tip**: Enable `php-apcu` and configure `FastCGI` / `PHP-FPM` to reach peak performance.
+
+#### Create Project
+```bash
+composer create-project fast-raven/project app
+cd app
+./init.sh mysite.local
+```
 
 ---
 

@@ -103,19 +103,13 @@ The entry point initializes the server, configures it, and starts processing:
 
 ```php
 <?php
-
 declare(strict_types=1);
-
-$startRequestTime = microtime(true);
-
 require __DIR__ . "/../../vendor/autoload.php";
 
 use FastRaven\Server;
 
 // Server initialization. sitePath SHOULD ALWAYS BE __DIR__
-// Pass $startRequestTime to include autoloading in performance metrics.
-// Omit it (or pass null) to calculate time starting from framework initialization.
-$server = Server::initialize(__DIR__, $startRequestTime);
+$server = Server::initialize(__DIR__);
 
 // Server configuration
 $server->configure(

@@ -1,5 +1,6 @@
 /_cert
-/logs
+/storage/logs/*
 .env
 .env.dev
 .env.prod
+env.php

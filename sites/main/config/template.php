@@ -2,7 +2,7 @@
 
 use FastRaven\Components\Core\Template;
 
-use FastRaven\Workers\Bee;
+use FastRaven\Bee;
 
 // Default template for all views.
 $template = Template::new("main.php", "Fast Raven Site", Bee::env("VERSION", "0.0.1"));

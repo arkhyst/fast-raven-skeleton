@@ -7,6 +7,6 @@ use FastRaven\Types\EndpointType;
 
 // CDN Router configuration. /cdn/ prefix is automatically added.
 $cdnRouter = Router::new(EndpointType::CDN)
-    ->add(Endpoint::cdn(false, "GET", "/favicon", "Favicon.php"));
+    ->add(Endpoint::cdn(true, "GET", "/logo", "Logo.php"));
 
 return $cdnRouter;

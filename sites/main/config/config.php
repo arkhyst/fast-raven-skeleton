@@ -8,7 +8,7 @@ $config = Config::new("main", false);
 // Cookie Session Configuration.
 $config->configureAuthorization("YOURSESSIONNAME", 7, false);
 
-// Redirect settings: notFound path, unauthorized path, subdomain (empty = main domain)
+// Redirect settings: notFound path, unauthorized path, subdomain. (null == show error page)
 $config->configureRedirects("/", "/", "");
 
 // Define whether to register logs or restrict what data to register.

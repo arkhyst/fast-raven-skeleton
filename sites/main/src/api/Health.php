@@ -3,9 +3,9 @@
 use FastRaven\Components\Http\Request;
 use FastRaven\Components\Http\Response;
 
-use FastRaven\Workers\LogWorker;
+use FastRaven\Services\LogService;
 
 return function(Request $request): Response {
-    LogWorker::log("Health API call was processed successfully");
+    LogService::log("Health API call was processed successfully");
     return Response::new(true, 200);
 };

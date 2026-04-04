@@ -495,7 +495,8 @@ AuthService::createAuthorization($userId, ["role" => "admin"]);
 // Check authorization
 AuthService::isAuthorized($request);      // Includes CSRF check for POST/PUT/DELETE/PATCH
 AuthService::isAuthorized();              // Session only (no CSRF check)
-$userId = AuthService::getAuthorizedUserId();  // int or null
+$userId = AuthService::getAuthorizedUserId();       // int or null
+$customData = AuthService::getAuthorizedUserCustomData();  // array or null
 
 // Destroy session
 AuthService::destroyAuthorization();
